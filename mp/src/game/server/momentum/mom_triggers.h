@@ -4,6 +4,7 @@
 #include "func_break.h"
 #include "modelentities.h"
 #include "triggers.h"
+#include "env_player_surface_trigger.h"
 
 class CMomRunEntity;
 class CMomentumPlayer;
@@ -289,6 +290,17 @@ protected:
     int m_iMode;
     Vector m_vecVelocityScaler;
     bool m_bResetAngles;
+    EHANDLE m_hDestinationEnt;
+};
+
+// Entity that teleports a player when they touch a specified surface type
+class CEnvSurfaceTeleport : public CEnvPlayerSurfaceTrigger
+{
+    DECLARE_CLASS(CEnvSurfaceTeleport, CEnvPlayerSurfaceTrigger);
+public:
+    void	UpdateMaterialThink(void);
+
+private:
     EHANDLE m_hDestinationEnt;
 };
 
