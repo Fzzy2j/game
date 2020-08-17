@@ -37,17 +37,34 @@ static MAKE_CONVAR_C(mom_gamemode, "0", FCVAR_REPLICATED | FCVAR_NOT_CONNECTED |
 
 void CGameModeBase::SetGameModeVars()
 {
-    // Default game mode vars
-    sv_gravity.SetValue(800);
-    sv_maxvelocity.SetValue(3500);
-    sv_airaccelerate.SetValue(150);
-    sv_accelerate.SetValue(5);
-    sv_maxspeed.SetValue(260);
-    sv_stopspeed.SetValue(75);
-    sv_considered_on_ground.SetValue(1);
-    sv_duck_collision_fix.SetValue(true);
-    sv_ground_trigger_fix.SetValue(true);
-    sv_edge_fix.SetValue(false); // MOM_TODO Let people test the edge fix in 0.8.4 so we can get their opinions
+    if (g_pGameModeSystem->GameModeIs(GAMEMODE_PARKOUR))
+    {
+        // Parkour values
+        sv_gravity.SetValue(600);
+        sv_maxvelocity.SetValue(3500);
+        sv_airaccelerate.SetValue(50);
+        sv_accelerate.SetValue(15);
+        sv_maxspeed.SetValue(260);
+        sv_stopspeed.SetValue(75);
+        sv_considered_on_ground.SetValue(1);
+        sv_duck_collision_fix.SetValue(true);
+        sv_ground_trigger_fix.SetValue(true);
+        sv_edge_fix.SetValue(false); // MOM_TODO Let people test the edge fix in 0.8.4 so we can get their opinions
+    }
+    else
+    {
+        // Default game mode vars
+        sv_gravity.SetValue(800);
+        sv_maxvelocity.SetValue(3500);
+        sv_airaccelerate.SetValue(150);
+        sv_accelerate.SetValue(5);
+        sv_maxspeed.SetValue(260);
+        sv_stopspeed.SetValue(75);
+        sv_considered_on_ground.SetValue(1);
+        sv_duck_collision_fix.SetValue(true);
+        sv_ground_trigger_fix.SetValue(true);
+        sv_edge_fix.SetValue(false); // MOM_TODO Let people test the edge fix in 0.8.4 so we can get their opinions
+    }
 }
 
 float CGameModeBase::GetJumpFactor()

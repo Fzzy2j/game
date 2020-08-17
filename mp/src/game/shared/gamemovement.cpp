@@ -1234,6 +1234,22 @@ void CGameMovement::DecayPunchAngle( void )
 		player->m_Local.m_vecPunchAngleVel.Init( 0, 0, 0 );
 		player->m_Local.m_vecTargetPunchAngle.Init(0, 0, 0);
 	}
+    if (fabsf(player->m_Local.m_punchRollOverride) > 0.001)
+    {
+        float t = gpGlobals->frametime * 10;
+        float x = player->m_Local.m_punchRollOverride;
+        float y = player->m_Local.m_punchRollOverrideTarget;
+        float roll = y > x ? x * (1 - t) + y * t : y;
+
+        player->m_Local.m_punchRollOverride = roll;
+
+        float decay = Sign(player->m_Local.m_punchRollOverrideTarget) * gpGlobals->frametime * 50;
+        player->m_Local.m_punchRollOverrideTarget -= decay;
+        if (decay < 0 && player->m_Local.m_punchRollOverrideTarget > 0)
+            player->m_Local.m_punchRollOverrideTarget = 0;
+        if (decay > 0 && player->m_Local.m_punchRollOverrideTarget < 0)
+            player->m_Local.m_punchRollOverrideTarget = 0;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1629,52 +1645,52 @@ void CGameMovement::Friction( void )
 
 void CGameMovement::DoFriction(Vector &velocity)
 {
-	// If we are in water jump cycle, don't apply friction
-	if (player->m_flWaterJumpTime)
-		return;
+    // If we are in water jump cycle, don't apply friction
+    if (player->m_flWaterJumpTime)
+        return;
 
-	// Calculate speed
-	float speed = VectorLength(velocity);
+    // Calculate speed
+    float speed = VectorLength(velocity);
 
-	// If too slow, return
-	if (speed < 0.1f)
-	{
-		return;
-	}
+    // If too slow, return
+    if (speed < 0.1f)
+    {
+        return;
+    }
 
-	float drop = 0.0f;
+    float drop = 0.0f;
 
-	// apply ground friction
-	if (ShouldApplyGroundFriction())
-	{
-		// For wallrunning, this might need to be revisited. Wallrunning on steep 
-		// rock walls is weirdly slow, and I think it might be because those surfaces 
-		// have low friction to stop you standing on them. So it might be better to 
-		// ignore surface info and just assume full friction when wallrunning.
-		float friction = sv_friction.GetFloat() * player->m_surfaceFriction;
+    // apply ground friction
+    if (ShouldApplyGroundFriction())
+    {
+        // For wallrunning, this might need to be revisited. Wallrunning on steep
+        // rock walls is weirdly slow, and I think it might be because those surfaces
+        // have low friction to stop you standing on them. So it might be better to
+        // ignore surface info and just assume full friction when wallrunning.
+        float friction = sv_friction.GetFloat() * player->m_surfaceFriction;
 
-		// Bleed off some speed, but if we have less than the bleed
-		//  threshold, bleed the threshold amount.
-		float control = (speed < sv_stopspeed.GetFloat()) ? sv_stopspeed.GetFloat() : speed;
+        // Bleed off some speed, but if we have less than the bleed
+        //  threshold, bleed the threshold amount.
+        float control = (speed < sv_stopspeed.GetFloat()) ? sv_stopspeed.GetFloat() : speed;
 
-		// Add the amount to the drop amount.
-		drop += control * friction * gpGlobals->frametime;
-	}
+        // Add the amount to the drop amount.
+        drop += control * friction * gpGlobals->frametime;
+    }
 
-	// scale the velocity
-	float newspeed = speed - drop;
-	if (newspeed < 0)
-		newspeed = 0;
+    // scale the velocity
+    float newspeed = speed - drop;
+    if (newspeed < 0)
+        newspeed = 0;
 
-	if (newspeed != speed)
-	{
-		// Determine proportion of old speed we are using.
-		newspeed /= speed;
-		// Adjust velocity according to proportion.
-		VectorScale(velocity, newspeed, velocity);
-	}
+    if (newspeed != speed)
+    {
+        // Determine proportion of old speed we are using.
+        newspeed /= speed;
+        // Adjust velocity according to proportion.
+        VectorScale(velocity, newspeed, velocity);
+    }
 
-	mv->m_outWishVel -= (1.f - newspeed) * velocity;
+    mv->m_outWishVel -= (1.f - newspeed) * velocity;
 }
 
 //-----------------------------------------------------------------------------
