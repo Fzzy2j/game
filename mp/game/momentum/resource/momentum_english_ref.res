@@ -5,7 +5,6 @@
     {
     // Weapons
         "MOM_Weapon_Machinegun" "Bullet Sinkhole"
-        "MOM_Weapon_Paintgun" "Graffiti Enabler"
         "MOM_Weapon_Knife" "Stabby McStabface"
         "MOM_Weapon_Grenade" "Spontaneous Combustion"
         "MOM_Weapon_Pistol" "Pea Shooter"
@@ -253,6 +252,9 @@
 
         // Settings Panel
         "MOM_Settings_Title" "Settings"
+
+        // General Tooltips
+        "MOM_Settings_Run_Disallow_TT" "Note: The timer must not be running for this setting to change."
         
         // Input
         "MOM_Settings_Input" "Input"
@@ -301,7 +303,8 @@
         // Online - sub Online ghosts
         "MOM_Settings_Title_Online_Ghost" "Online Ghost Settings"
         "MOM_Settings_Override_Alpha_Enable" "Override online ghost color alpha"
-        "MOM_Settings_Override_Alpha_Enable_TT" "When enabled, this setting overrides the alpha component of all online ghosts' colors."
+        "MOM_Settings_Override_Alpha_Enable_TT" "When enabled, this setting overrides the transparency of all online ghosts' colors."
+        "MOM_Settings_Override_Alpha_Amount_TT" "The amount of transparency each online ghost has if the override is enabled."
         "MOM_Settings_Online_Rotations" "Wonky online ghost rotations"
         "MOM_Settings_Online_Rotations_TT" "When enabled, ghosts rotate about their origin." 
         "MOM_Settings_Online_Sounds" "Online ghost flashlight sounds"
@@ -327,6 +330,13 @@
         "MOM_Settings_Release_Forward_On_Jump" "Release forward key on jump"
         "MOM_Settings_Release_Forward_On_Jump_TT" "When checked the game will determine the forward key based on movement while on ground and release the determined key when you jump."
 
+        // Gameplay - paint
+        "MOM_Settings_Title_Gameplay_Paint" "Paint Settings"
+        "MOM_Settings_Paint_Scale_Label" "Paint Decal Scale"
+        "MOM_Settings_Paint_Color_Label" "Paint Decal Color"
+        "MOM_Settings_Paint_Apply_Sound" "Paint Apply Sound Enable"
+        "MOM_Settings_Paint_Limit_To_World" "Limit Paint Decals to World Geometry"
+
         // Gameplay - run safeguards
         "MOM_Settings_Title_Gameplay_Run_Safeguards" "Run Safeguards"
         "MOM_Settings_Run_Safeguard_Practice_Mode" "Practice Mode Enable"
@@ -351,7 +361,7 @@
         "MOM_Settings_RJ_Enable_Center_Fire" "Fire rocket projectiles from screen center"
         "MOM_Settings_RJ_Enable_Center_Fire_TT" "When enabled, rockets will fire from the center of the screen like the Original from Team Fortress 2 / Quake."
         "MOM_Settings_RJ_RocketDrawDelayEntry_Label" "Delay before rockets are rendered"
-        "MOM_Settings_RJ_RocketDrawDelayEntry_Tooltip" "In seconds. Default is 0.2, max 1."
+        "MOM_Settings_RJ_RocketDrawDelayEntry_TT" "In seconds. Default is 0.2, max 1."
 
         // Gameplay - sub Sticky Jump settings
         "MOM_Settings_Title_Gameplay_SJ" "Sticky Jump Settings"
@@ -373,7 +383,7 @@
         "MOM_Settings_SJ_Enable_Sticky_Counter_Autohide" "Autohide stickybomb counter"
         "MOM_Settings_SJ_Enable_Sticky_Counter_Autohide_TT" "Autohide when sticky count is 0."
         "MOM_Settings_SJ_DrawDelayEntry_Label" "Delay before stickybombs are rendered"
-        "MOM_Settings_SJ_DrawDelayEntry_Tooltip" "In seconds. Default is 0, max 1."
+        "MOM_Settings_SJ_DrawDelayEntry_TT" "In seconds. Default is 0, max 1."
 
         // HUD
         "MOM_Settings_HUD" "HUD"
@@ -436,7 +446,7 @@
         "MOM_Settings_Compare_Bogus_Run" "Example Run"
 
         "MOM_Settings_Compare_Time_Type_Label" "Time type:"
-        "MOM_Settings_Compare_Time_Type_Label_TT" "This is the time comparison shown next to past zones."
+        "MOM_Settings_Compare_Time_Type_TT" "This is the time comparison shown next to past zones."
         "MOM_Settings_Compare_Time_Type_Overall" "Overall run time"
         "MOM_Settings_Compare_Time_Type_PerZone" "Time spent per zone"
         "MOM_Settings_Compare_Show_Overall" "Overall time"
@@ -551,13 +561,6 @@
         "MOM_MB_DeleteRunConfirmation" "NOTE: If you delete a local run, keep in mind that there's currently no way to get it back!"
 
         "MOM_Momentum" "Momentum"
-
-        // Paint gun panel
-        "MOM_PaintGunPanel_SliderText" "Decal scale:"
-        "MOM_PaintGunPanel_Viewmodel" "Paintgun Viewmodel Visible"
-        "MOM_PaintGunPanel_Sound" "Paintgun Shoot Sound Enabled"
-        "MOM_PaintGunPanel_Color" "Decal color:"
-        "MOM_PaintGunPanel_Color_TT" "Change the color of the paint"
         
         // Lobby members panel / related strings
         "MOM_Lobby_Spectate" "Spectate"

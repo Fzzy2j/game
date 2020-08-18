@@ -17,77 +17,154 @@
 
 MAKE_TOGGLE_CONVAR(mom_saveloc_save_between_sessions, "1", FCVAR_ARCHIVE, "Defines if savelocs should be saved between sessions of the same map.\n");
 
-SavedLocation_t::SavedLocation_t(): crouched(false), pos(vec3_origin), vel(vec3_origin), ang(vec3_angle),
-                                    gravityScale(1.0f), movementLagScale(1.0f), disabledButtons(0)
+SavedLocation_t::SavedLocation_t() : m_bCrouched(false), m_vecPos(vec3_origin), m_vecVel(vec3_origin), m_qaAng(vec3_angle),
+                                     m_fGravityScale(1.0f), m_fMovementLagScale(1.0f), m_iDisabledButtons(0), m_savedComponents(SAVELOC_NONE),
+                                     m_iZone(-1), m_iTrack(-1)
 {
-    targetName[0] = '\0';
-    targetClassName[0] = '\0';
+    m_szTargetName[0] = '\0';
+    m_szTargetClassName[0] = '\0';
 }
 
-SavedLocation_t::SavedLocation_t(CMomentumPlayer* pPlayer)
+SavedLocation_t::SavedLocation_t(CMomentumPlayer* pPlayer, int components /*= SAVELOC_ALL*/) : SavedLocation_t()
 {
-    Q_strncpy(targetName, pPlayer->GetEntityName().ToCStr(), sizeof(targetName));
-    Q_strncpy(targetClassName, pPlayer->GetClassname(), sizeof(targetClassName));
-    vel = pPlayer->GetAbsVelocity();
-    pos = pPlayer->GetAbsOrigin();
-    ang = pPlayer->GetAbsAngles();
-    crouched = pPlayer->m_Local.m_bDucked || pPlayer->m_Local.m_bDucking;
-    gravityScale = pPlayer->GetGravity();
-    movementLagScale = pPlayer->GetLaggedMovementValue();
-    disabledButtons = pPlayer->m_afButtonDisabled.Get();
-    g_EventQueue.SaveForTarget(pPlayer, entEventsState);
+    m_savedComponents = components;
+
+    if ( components & SAVELOC_TARGETNAME )
+        Q_strncpy(m_szTargetName, pPlayer->GetEntityName().ToCStr(), sizeof(m_szTargetName));
+
+    if ( components & SAVELOC_CLASSNAME )
+        Q_strncpy(m_szTargetClassName, pPlayer->GetClassname(), sizeof(m_szTargetClassName));
+
+    if ( components & SAVELOC_VEL )
+        m_vecVel = pPlayer->GetAbsVelocity();
+
+    if ( components & SAVELOC_POS )
+        m_vecPos = pPlayer->GetAbsOrigin();
+
+    if ( components & SAVELOC_ANG )
+        m_qaAng = pPlayer->GetAbsAngles();
+
+    if ( components & SAVELOC_DUCKED )
+        m_bCrouched = pPlayer->m_Local.m_bDucked || pPlayer->m_Local.m_bDucking;
+
+    if ( components & SAVELOC_GRAVITY )
+        m_fGravityScale = pPlayer->GetGravity();
+
+    if ( components & SAVELOC_MOVEMENTLAG )
+        m_fMovementLagScale = pPlayer->GetLaggedMovementValue();
+
+    if ( components & SAVELOC_DISABLED_BTNS )
+        m_iDisabledButtons = pPlayer->m_afButtonDisabled.Get();
+
+    if ( components & SAVELOC_TRACK )
+        m_iTrack = pPlayer->m_Data.m_iCurrentTrack;
+
+    if ( components & SAVELOC_ZONE )
+        m_iZone = pPlayer->m_Data.m_iCurrentZone;
+
+    if ( components & SAVELOC_EVENT_QUEUE )
+        g_EventQueue.SaveForTarget(pPlayer, entEventsState);
 }
 
 void SavedLocation_t::Save(KeyValues* kvCP) const
 {
-    kvCP->SetString("targetName", targetName);
-    kvCP->SetString("targetClassName", targetClassName);
-    MomUtil::KVSaveVector(kvCP, "vel", vel);
-    MomUtil::KVSaveVector(kvCP, "pos", pos);
-    MomUtil::KVSaveQAngles(kvCP, "ang", ang);
-    kvCP->SetBool("crouched", crouched);
-    kvCP->SetFloat("gravityScale", gravityScale);
-    kvCP->SetFloat("movementLagScale", movementLagScale);
-    kvCP->SetInt("disabledButtons", disabledButtons);
-    entEventsState.SaveToKeyValues(kvCP);
+    kvCP->SetInt( "components", m_savedComponents );
+
+    if ( m_savedComponents & SAVELOC_TARGETNAME )
+        kvCP->SetString("targetName", m_szTargetName);
+
+    if ( m_savedComponents & SAVELOC_CLASSNAME )
+        kvCP->SetString("targetClassName", m_szTargetClassName);
+
+    if ( m_savedComponents & SAVELOC_VEL )
+        MomUtil::Save3DToKeyValues( kvCP, "vel", m_vecVel );
+
+    if ( m_savedComponents & SAVELOC_POS )
+        MomUtil::Save3DToKeyValues( kvCP, "pos", m_vecPos );
+
+    if ( m_savedComponents & SAVELOC_ANG )
+        MomUtil::Save3DToKeyValues( kvCP, "ang", m_qaAng );
+
+    if ( m_savedComponents & SAVELOC_DUCKED )
+        kvCP->SetBool("crouched", m_bCrouched);
+
+    if ( m_savedComponents & SAVELOC_GRAVITY )
+        kvCP->SetFloat("gravityScale", m_fGravityScale);
+
+    if ( m_savedComponents & SAVELOC_MOVEMENTLAG )
+        kvCP->SetFloat("movementLagScale", m_fMovementLagScale);
+
+    if ( m_savedComponents & SAVELOC_DISABLED_BTNS )
+        kvCP->SetInt("disabledButtons", m_iDisabledButtons);
+
+    if ( m_savedComponents & SAVELOC_TRACK )
+        kvCP->SetInt( "track", m_iTrack );
+
+    if ( m_savedComponents & SAVELOC_ZONE )
+        kvCP->SetInt( "zone", m_iZone );
+
+    if ( m_savedComponents & SAVELOC_EVENT_QUEUE )
+        entEventsState.SaveToKeyValues(kvCP);
 }
 
 void SavedLocation_t::Load(KeyValues* pKv)
 {
-    Q_strncpy(targetName, pKv->GetString("targetName"), sizeof(targetName));
-    Q_strncpy(targetClassName, pKv->GetString("targetClassName"), sizeof(targetClassName));
-    MomUtil::KVLoadVector(pKv, "pos", pos);
-    MomUtil::KVLoadVector(pKv, "vel", vel);
-    MomUtil::KVLoadQAngles(pKv, "ang", ang);
-    crouched = pKv->GetBool("crouched");
-    gravityScale = pKv->GetFloat("gravityScale", 1.0f);
-    movementLagScale = pKv->GetFloat("movementLagScale", 1.0f);
-    disabledButtons = pKv->GetInt("disabledButtons");
+    m_savedComponents = pKv->GetInt( "components", SAVELOC_ALL );
+    Q_strncpy(m_szTargetName, pKv->GetString("targetName"), sizeof(m_szTargetName));
+    Q_strncpy(m_szTargetClassName, pKv->GetString("targetClassName"), sizeof(m_szTargetClassName));
+    MomUtil::Load3DFromKeyValues( pKv, "pos", m_vecPos );
+    MomUtil::Load3DFromKeyValues( pKv, "vel", m_vecVel );
+    MomUtil::Load3DFromKeyValues( pKv, "ang", m_qaAng );
+    m_bCrouched = pKv->GetBool("crouched");
+    m_fGravityScale = pKv->GetFloat("gravityScale", 1.0f);
+    m_fMovementLagScale = pKv->GetFloat("movementLagScale", 1.0f);
+    m_iDisabledButtons = pKv->GetInt("disabledButtons");
+    m_iTrack = pKv->GetInt( "track", -1 );
+    m_iZone = pKv->GetInt( "zone", -1 );
     entEventsState.LoadFromKeyValues(pKv);
 }
 
 void SavedLocation_t::Teleport(CMomentumPlayer* pPlayer)
 {
-    // Handle custom ent flags that old maps do
-    pPlayer->SetName(MAKE_STRING(targetName));
-    pPlayer->SetClassname(targetClassName);
+    if ( m_savedComponents & SAVELOC_TARGETNAME )
+        pPlayer->SetName(MAKE_STRING(m_szTargetName));
 
-    // Handle the crouched state
-    if (crouched && !pPlayer->m_Local.m_bDucked)
-        pPlayer->ToggleDuckThisFrame(true);
-    else if (!crouched && pPlayer->m_Local.m_bDucked)
-        pPlayer->ToggleDuckThisFrame(false);
+    if ( m_savedComponents & SAVELOC_CLASSNAME )
+        pPlayer->SetClassname(m_szTargetClassName);
 
-    // Teleport the player
-    pPlayer->Teleport(&pos, &ang, &vel);
+    if ( m_savedComponents & SAVELOC_DUCKED )
+    {
+        if ( m_bCrouched && !pPlayer->m_Local.m_bDucked )
+        {
+            pPlayer->ToggleDuckThisFrame( true );
+        }
+        else if ( !m_bCrouched && pPlayer->m_Local.m_bDucked )
+        {
+            pPlayer->ToggleDuckThisFrame( false );
+        }
+    }
 
-    // Handle miscellaneous states like gravity and speed
-    pPlayer->SetGravity(gravityScale);
-    pPlayer->DisableButtons(disabledButtons);
-    pPlayer->SetLaggedMovementValue(movementLagScale);
+    pPlayer->Teleport(&m_vecPos,
+                      m_savedComponents & SAVELOC_ANG ? &m_qaAng : nullptr,
+                      m_savedComponents & SAVELOC_VEL ? &m_vecVel : nullptr);
 
-    // Restore entity event queue state
-    g_EventQueue.RestoreForTarget(pPlayer, entEventsState);
+    if ( m_savedComponents & SAVELOC_GRAVITY )
+        pPlayer->SetGravity(m_fGravityScale);
+
+    if ( m_savedComponents & SAVELOC_DISABLED_BTNS )
+        pPlayer->DisableButtons(m_iDisabledButtons);
+
+    if ( m_savedComponents & SAVELOC_MOVEMENTLAG )
+        pPlayer->SetLaggedMovementValue(m_fMovementLagScale);
+
+    if ( m_savedComponents & SAVELOC_TRACK && m_iTrack > -1 )
+        pPlayer->m_Data.m_iCurrentTrack = m_iTrack;
+
+    if ( m_savedComponents & SAVELOC_ZONE && m_iZone > -1 )
+        pPlayer->m_Data.m_iCurrentZone = m_iZone;
+
+    if ( m_savedComponents & SAVELOC_EVENT_QUEUE )
+        g_EventQueue.RestoreForTarget(pPlayer, entEventsState);
 }
 
 bool SavedLocation_t::Read(CUtlBuffer &mem)
@@ -109,7 +186,7 @@ bool SavedLocation_t::Write(CUtlBuffer &mem)
     return write->WriteAsBinary(mem);
 }
 
-CMOMSaveLocSystem::CMOMSaveLocSystem(const char* pName): CAutoGameSystem(pName)
+CSaveLocSystem::CSaveLocSystem(const char* pName): CAutoGameSystem(pName)
 {
     m_pSavedLocsKV = new KeyValues(pName);
     m_iRequesting = 0;
@@ -117,19 +194,19 @@ CMOMSaveLocSystem::CMOMSaveLocSystem(const char* pName): CAutoGameSystem(pName)
     m_bUsingSavelocMenu = false;
 }
 
-CMOMSaveLocSystem::~CMOMSaveLocSystem()
+CSaveLocSystem::~CSaveLocSystem()
 {
     if (m_pSavedLocsKV)
         m_pSavedLocsKV->deleteThis();
     m_pSavedLocsKV = nullptr;
 }
 
-void CMOMSaveLocSystem::PostInit()
+void CSaveLocSystem::PostInit()
 {
-    g_pModuleComms->ListenForEvent("req_savelocs", UtlMakeDelegate(this, &CMOMSaveLocSystem::OnSavelocRequestEvent));
+    g_pModuleComms->ListenForEvent("req_savelocs", UtlMakeDelegate(this, &CSaveLocSystem::OnSavelocRequestEvent));
 }
 
-void CMOMSaveLocSystem::LevelInitPreEntity()
+void CSaveLocSystem::LevelInitPreEntity()
 {
     // We don't check mom_savelocs_save_between_sessions because we want to be able to load savelocs from friends
     DevLog("Loading savelocs from %s ...\n", SAVELOC_FILE_NAME);
@@ -155,10 +232,12 @@ void CMOMSaveLocSystem::LevelInitPreEntity()
                     m_iCurrentSavelocIndx = kvMapSavelocs->GetInt("cur");
 
                     KeyValues *kvCPs = kvMapSavelocs->FindKey("cps");
-                    if (!kvCPs) return;
+                    if (!kvCPs)
+                        return;
+
                     FOR_EACH_SUBKEY(kvCPs, kvCheckpoint)
                     {
-                        SavedLocation_t *c = new SavedLocation_t();
+                        auto c = new SavedLocation_t;
                         c->Load(kvCheckpoint);
                         m_rcSavelocs.AddToTail(c);
                     }
@@ -171,7 +250,7 @@ void CMOMSaveLocSystem::LevelInitPreEntity()
     }
 }
 
-void CMOMSaveLocSystem::LevelShutdownPreEntity()
+void CSaveLocSystem::LevelShutdownPreEntity()
 {
     if (CMomentumPlayer::GetLocalPlayer() && m_pSavedLocsKV && mom_saveloc_save_between_sessions.GetBool())
     {
@@ -217,7 +296,7 @@ void CMOMSaveLocSystem::LevelShutdownPreEntity()
     RemoveAllSavelocs();
 }
 
-void CMOMSaveLocSystem::OnSavelocRequestEvent(KeyValues* pKv)
+void CSaveLocSystem::OnSavelocRequestEvent(KeyValues* pKv)
 {
     int stage = pKv->GetInt("stage", SAVELOC_REQ_STAGE_INVALID);
     CSteamID target(pKv->GetUint64("target"));
@@ -252,7 +331,7 @@ void CMOMSaveLocSystem::OnSavelocRequestEvent(KeyValues* pKv)
     }
 }
 
-bool CMOMSaveLocSystem::AddSavelocRequester(const uint64& newReq)
+bool CSaveLocSystem::AddSavelocRequester(const uint64& newReq)
 {
     if (m_vecRequesters.HasElement(newReq))
         return false;
@@ -261,7 +340,7 @@ bool CMOMSaveLocSystem::AddSavelocRequester(const uint64& newReq)
     return true;
 }
 
-void CMOMSaveLocSystem::RequesterLeft(const uint64& requester)
+void CSaveLocSystem::RequesterLeft(const uint64& requester)
 {
     // The person we are requesting savelocs from just left
     if (requester == m_iRequesting)
@@ -278,7 +357,7 @@ void CMOMSaveLocSystem::RequesterLeft(const uint64& requester)
     m_vecRequesters.FindAndFastRemove(requester);
 }
 
-void CMOMSaveLocSystem::SetRequestingSavelocsFrom(const uint64& from)
+void CSaveLocSystem::SetRequestingSavelocsFrom(const uint64& from)
 {
     if (m_iRequesting && from != 0)
     {
@@ -289,7 +368,7 @@ void CMOMSaveLocSystem::SetRequestingSavelocsFrom(const uint64& from)
     m_iRequesting = from;
 }
 
-bool CMOMSaveLocSystem::WriteRequestedSavelocs(SavelocReqPacket *input, SavelocReqPacket *output, const uint64 &requester)
+bool CSaveLocSystem::WriteRequestedSavelocs(SavelocReqPacket *input, SavelocReqPacket *output, const uint64 &requester)
 {
     if (!m_vecRequesters.HasElement(requester))
         return false;
@@ -313,13 +392,13 @@ bool CMOMSaveLocSystem::WriteRequestedSavelocs(SavelocReqPacket *input, SavelocR
         return false;
 
     // We set the count here because we may have a different number of savelocs than requested
-    // (eg. when we delete some savelocs while the packet to request the original amount/indicies is still live)
+    // (eg. when we delete some savelocs while the packet to request the original amount/indices is still live)
     output->saveloc_count = count;
 
     return true;
 }
 
-bool CMOMSaveLocSystem::ReadReceivedSavelocs(SavelocReqPacket *input, const uint64 &sender)
+bool CSaveLocSystem::ReadReceivedSavelocs(SavelocReqPacket *input, const uint64 &sender)
 {
     if (sender != m_iRequesting)
         return false;
@@ -349,13 +428,13 @@ bool CMOMSaveLocSystem::ReadReceivedSavelocs(SavelocReqPacket *input, const uint
     return false;
 }
 
-SavedLocation_t* CMOMSaveLocSystem::CreateSaveloc()
+SavedLocation_t* CSaveLocSystem::CreateSaveloc(int components /*= SAVELOC_ALL*/)
 {
     const auto pPlayer = CMomentumPlayer::GetLocalPlayer();
-    return pPlayer ? new SavedLocation_t(pPlayer) : nullptr;
+    return pPlayer ? new SavedLocation_t(pPlayer, components) : nullptr;
 }
 
-void CMOMSaveLocSystem::CreateAndSaveLocation()
+void CSaveLocSystem::CreateAndSaveLocation()
 {
     SavedLocation_t *created = CreateSaveloc();
     if (created)
@@ -366,7 +445,7 @@ void CMOMSaveLocSystem::CreateAndSaveLocation()
     }
 }
 
-void CMOMSaveLocSystem::AddSaveloc(SavedLocation_t* saveloc)
+void CSaveLocSystem::AddSaveloc(SavedLocation_t* saveloc)
 {
     if (!saveloc)
         return;
@@ -381,7 +460,7 @@ void CMOMSaveLocSystem::AddSaveloc(SavedLocation_t* saveloc)
     FireUpdateEvent();
 }
 
-void CMOMSaveLocSystem::RemoveCurrentSaveloc()
+void CSaveLocSystem::RemoveCurrentSaveloc()
 {
     if (m_rcSavelocs.IsEmpty())
         return;
@@ -397,7 +476,7 @@ void CMOMSaveLocSystem::RemoveCurrentSaveloc()
     UpdateRequesters();
 }
 
-void CMOMSaveLocSystem::RemoveAllSavelocs()
+void CSaveLocSystem::RemoveAllSavelocs()
 {
     m_rcSavelocs.PurgeAndDeleteElements();
     m_iCurrentSavelocIndx = -1;
@@ -406,7 +485,7 @@ void CMOMSaveLocSystem::RemoveAllSavelocs()
     UpdateRequesters();
 }
 
-void CMOMSaveLocSystem::GotoNextSaveloc()
+void CSaveLocSystem::GotoNextSaveloc()
 {
     auto count = GetSavelocCount();
     if (count > 0)
@@ -416,7 +495,7 @@ void CMOMSaveLocSystem::GotoNextSaveloc()
     }
 }
 
-void CMOMSaveLocSystem::GotoFirstSaveloc()
+void CSaveLocSystem::GotoFirstSaveloc()
 {
     if (!m_rcSavelocs.IsEmpty())
     {
@@ -425,7 +504,7 @@ void CMOMSaveLocSystem::GotoFirstSaveloc()
     }
 }
 
-void CMOMSaveLocSystem::GotoLastSaveloc()
+void CSaveLocSystem::GotoLastSaveloc()
 {
     auto count = GetSavelocCount();
     if (count > 0)
@@ -435,7 +514,7 @@ void CMOMSaveLocSystem::GotoLastSaveloc()
     }
 }
 
-void CMOMSaveLocSystem::GotoPrevSaveloc()
+void CSaveLocSystem::GotoPrevSaveloc()
 {
     auto count = GetSavelocCount();
     if (count > 0)
@@ -445,7 +524,7 @@ void CMOMSaveLocSystem::GotoPrevSaveloc()
     }
 }
 
-void CMOMSaveLocSystem::TeleportToSavelocIndex(int indx)
+void CSaveLocSystem::TeleportToSavelocIndex(int indx)
 {
     const auto pPlayer = CMomentumPlayer::GetLocalPlayer();
     if (indx < 0 || indx > m_rcSavelocs.Count() || !pPlayer || !pPlayer->AllowUserTeleports())
@@ -455,7 +534,7 @@ void CMOMSaveLocSystem::TeleportToSavelocIndex(int indx)
     m_rcSavelocs[indx]->Teleport(pPlayer);
 }
 
-void CMOMSaveLocSystem::TeleportToCurrentSaveloc()
+void CSaveLocSystem::TeleportToCurrentSaveloc()
 {
     if (g_pRunSafeguards->IsSafeguarded(RUN_SAFEGUARD_SAVELOC_TELE))
         return; 
@@ -464,13 +543,13 @@ void CMOMSaveLocSystem::TeleportToCurrentSaveloc()
     FireUpdateEvent();
 }
 
-void CMOMSaveLocSystem::SetUsingSavelocMenu(bool bIsUsingSLMenu)
+void CSaveLocSystem::SetUsingSavelocMenu(bool bIsUsingSLMenu)
 {
     m_bUsingSavelocMenu = bIsUsingSLMenu;
     FireUpdateEvent();
 }
 
-void CMOMSaveLocSystem::CheckTimer()
+void CSaveLocSystem::CheckTimer()
 {
     if (g_pMomentumTimer->IsRunning())
     {
@@ -485,7 +564,7 @@ void CMOMSaveLocSystem::CheckTimer()
     m_bUsingSavelocMenu = true;
 }
 
-void CMOMSaveLocSystem::FireUpdateEvent() const
+void CSaveLocSystem::FireUpdateEvent() const
 {
     const auto pEvent = gameeventmanager->CreateEvent("saveloc_upd8");
     if (pEvent)
@@ -497,7 +576,7 @@ void CMOMSaveLocSystem::FireUpdateEvent() const
     }
 }
 
-void CMOMSaveLocSystem::UpdateRequesters()
+void CSaveLocSystem::UpdateRequesters()
 {
     if (m_vecRequesters.IsEmpty())
         return;
@@ -516,41 +595,41 @@ void CMOMSaveLocSystem::UpdateRequesters()
 
 CON_COMMAND_F(mom_saveloc_create, "Creates a saveloc that saves a player's state.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->CreateAndSaveLocation();
+    g_pSavelocSystem->CreateAndSaveLocation();
 }
 CON_COMMAND_F(mom_saveloc_current, "Teleports the player to their current saved location.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->TeleportToCurrentSaveloc();
+    g_pSavelocSystem->TeleportToCurrentSaveloc();
 }
 CON_COMMAND_F(mom_saveloc_nav_next, "Goes forwards through the saveloc list, while teleporting the player to each.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->GotoNextSaveloc();
+    g_pSavelocSystem->GotoNextSaveloc();
 }
 CON_COMMAND_F(mom_saveloc_nav_prev, "Goes backwards through the saveloc list, while teleporting the player to each.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->GotoPrevSaveloc();
+    g_pSavelocSystem->GotoPrevSaveloc();
 }
 CON_COMMAND_F(mom_saveloc_nav_first, "Goes to the first saveloc in the list, teleporting the player to it.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->GotoFirstSaveloc();
+    g_pSavelocSystem->GotoFirstSaveloc();
 }
 CON_COMMAND_F(mom_saveloc_nav_last, "Goes to the last saveloc in the list, teleporting the player to it.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->GotoLastSaveloc();
+    g_pSavelocSystem->GotoLastSaveloc();
 }
 CON_COMMAND_F(mom_saveloc_remove_current, "Removes the current saveloc.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->RemoveCurrentSaveloc();
+    g_pSavelocSystem->RemoveCurrentSaveloc();
 }
 CON_COMMAND_F(mom_saveloc_remove_all, "Removes all of the created savelocs for this map.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->RemoveAllSavelocs();
+    g_pSavelocSystem->RemoveAllSavelocs();
 }
 CON_COMMAND_F(mom_saveloc_close, "Closes the saveloc menu.\n", FCVAR_CLIENTCMD_CAN_EXECUTE)
 {
-    g_pMOMSavelocSystem->SetUsingSavelocMenu(false);
+    g_pSavelocSystem->SetUsingSavelocMenu(false);
 }
 
 //Expose this to the DLL
-static CMOMSaveLocSystem s_MOMSavelocSystem("MOMSavelocSystem");
-CMOMSaveLocSystem *g_pMOMSavelocSystem = &s_MOMSavelocSystem;
+static CSaveLocSystem s_MOMSavelocSystem("MOMSavelocSystem");
+CSaveLocSystem *g_pSavelocSystem = &s_MOMSavelocSystem;

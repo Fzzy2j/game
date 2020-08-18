@@ -83,7 +83,7 @@ void CMomentumPlayer::SetRampLeaveVelocity(const Vector &vecVel)
 #endif
 }
 
-void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting postion
+void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting position
                                  const QAngle &shootAngles, // shooting angle
                                  float vecSpread,           // spread vector
                                  int iBulletType,           // ammo type
@@ -102,7 +102,7 @@ void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting postion
     float flPenetrationDistance = g_pAmmoDef->PenetrationDistance(iBulletType); // distance at which the bullet is capable of penetrating a wall
     float flDamageModifier = 0.5f;    // default modification of bullets power after they go through a wall.
     float flPenetrationModifier = 1.f;
-    bool bPaintGun = iBulletType == AMMO_TYPE_PAINT;
+    bool bPaintAmmo = iBulletType == AMMO_TYPE_PAINT;
     float flDistance = g_pAmmoDef->Range(iBulletType);
 
     if (!pevAttacker)
@@ -118,7 +118,7 @@ void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting postion
     CBasePlayer *lastPlayerHit = nullptr;
 
     // MDLCACHE_CRITICAL_SECTION();
-    while (fCurrentDamage > 0 || bPaintGun)
+    while (fCurrentDamage > 0 || bPaintAmmo)
     {
         Vector vecEnd = vecSrc + vecDir * flDistance;
 
@@ -202,7 +202,7 @@ void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting postion
         if (bDoEffects)
         {
             // See if the bullet ended up underwater + started out of the water
-            if (enginetrace->GetPointContents(tr.endpos) & (CONTENTS_WATER | CONTENTS_SLIME) && !bPaintGun)
+            if (enginetrace->GetPointContents(tr.endpos) & (CONTENTS_WATER | CONTENTS_SLIME) && !bPaintAmmo)
             {
                 trace_t waterTrace;
                 UTIL_TraceLine(vecSrc, tr.endpos, (MASK_SHOT | CONTENTS_WATER | CONTENTS_SLIME), this,
@@ -225,11 +225,11 @@ void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting postion
             }
             else if (shouldDecal && bEntValid)
             {
-                UTIL_ImpactTrace(&tr, iDamageType, bPaintGun ? "Painting" : nullptr);
+                UTIL_ImpactTrace(&tr, iDamageType, bPaintAmmo ? "Painting" : nullptr);
             }
         }
 
-        if (bPaintGun)
+        if (bPaintAmmo)
             return;
 
 #ifndef CLIENT_DLL
@@ -252,7 +252,7 @@ void CMomentumPlayer::FireBullet(Vector vecSrc,             // shooting postion
         }
 #endif
 
-        // check if bullet can penetarte another entity
+        // check if bullet can penetrate another entity
         if (iPenetration == 0 && !hitGrate)
             break; // no, stop
 
@@ -366,18 +366,86 @@ void CMomentumPlayer::KickBack(float up_base, float lateral_base, float up_modif
     SetPunchAngle(angle);
 }
 
-void CMomentumPlayer::SetLastCollision(const trace_t &tr)
+int CMomentumPlayer::GetInteractionIndex(SurfInt::Type type) const
 {
-    m_iLastCollisionTick = gpGlobals->tickcount;
-    m_trLastCollisionTrace = tr;
+    for (int index = 0; index < SurfInt::TYPE_COUNT; index++)
+    {
+        if (m_surfIntHistory[index] == type)
+            return index;
+    }
+    return -1;
+}
+
+const SurfInt& CMomentumPlayer::GetInteraction(int index) const
+{
+    return m_surfIntList[m_surfIntHistory[index]];
+}
+
+bool CMomentumPlayer::SetLastInteraction(const trace_t &tr, const Vector &velocity, SurfInt::Type type)
+{
+    // Set default action
+    SurfInt::Action action;
+    if (type == SurfInt::TYPE_LEAVE)
+    {
+        action = SurfInt::ACTION_LEAVE;
+    }
+    else if (type == SurfInt::TYPE_FLOOR || type == SurfInt::TYPE_WALL || type == SurfInt::TYPE_CEILING)
+    {
+        action = SurfInt::ACTION_COLLISION;
+    }
+    else if (type == SurfInt::TYPE_LAND)
+    {
+        action = SurfInt::ACTION_LAND;
+    }
+    else if (type == SurfInt::TYPE_GROUNDED)
+    {
+        action = SurfInt::ACTION_GROUNDED;
+    }
+    else
+    {
+        return false;
+    }
+
+    SurfInt &surfInt = m_surfIntList[type];
+    surfInt.tick = gpGlobals->tickcount;
+    surfInt.trace = tr;
+    surfInt.velocity = velocity;
+    surfInt.action = action;
 
     // Raise origin position if it was a ceiling that was hit
     if (tr.plane.normal.z < 0.0f)
     {
         float flOffset = (CollisionProp()->OBBMaxs() - CollisionProp()->OBBMins()).z;
-        m_trLastCollisionTrace.startpos.z += flOffset;
-        m_trLastCollisionTrace.endpos.z   += flOffset;
+        surfInt.trace.startpos.z += flOffset;
+        surfInt.trace.endpos.z   += flOffset;
     }
+
+    // Check if this type is already the latest
+    int index = GetInteractionIndex(type);
+    if (index == 0)
+        return true;
+
+    // Clear or shift other entries accordingly
+    if (type == SurfInt::TYPE_LEAVE)
+    {
+        for (int i = 1; i < SurfInt::TYPE_COUNT; i++)
+            m_surfIntHistory[i] = SurfInt::TYPE_COUNT;
+    }
+    else
+    {
+        int end = (index == -1) ? (SurfInt::TYPE_COUNT - 1) : index;
+        for (int i = end; i > 0; i--)
+            m_surfIntHistory[i] = m_surfIntHistory[i-1];
+    }
+
+    m_surfIntHistory[0] = type;
+
+    return true;
+}
+
+void CMomentumPlayer::UpdateLastAction(SurfInt::Action action)
+{
+    m_surfIntList[m_surfIntHistory[0]].action = action;
 }
 
 void CMomentumPlayer::PlayStepSound(const Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force)

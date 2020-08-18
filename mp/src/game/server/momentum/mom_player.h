@@ -229,7 +229,6 @@ class CMomentumPlayer : public CBasePlayer, public CGameEventListener, public CM
     SavedLocation_t *GetStartMark(int track) const { return (track >= 0 && track < MAX_TRACKS) ? m_pStartZoneMarks[track] : nullptr; }
     void ClearStartMark(int track);
 
-    void DoMuzzleFlash() OVERRIDE;
     void PreThink() override;
     void PostThink() OVERRIDE;
 
@@ -241,10 +240,11 @@ class CMomentumPlayer : public CBasePlayer, public CGameEventListener, public CM
     float GetGrabbableLadderTime() const { return m_flGrabbableLadderTime; }
     void SetGrabbableLadderTime(float new_time) { m_flGrabbableLadderTime = new_time; }
 
-    // Last collision
-    void SetLastCollision(const trace_t &tr);
-    int GetLastCollisionTick() const { return m_iLastCollisionTick; }
-    trace_t& GetLastCollisionTrace() { return m_trLastCollisionTrace; }
+    // Surface interactions
+    int GetInteractionIndex(SurfInt::Type type) const;
+    const SurfInt& GetInteraction(int index) const;
+    bool SetLastInteraction(const trace_t &tr, const Vector &velocity, SurfInt::Type type);
+    void UpdateLastAction(SurfInt::Action action);
 
     void SetLastEyeAngles(const QAngle &ang) { m_qangLastAngle = ang; }
     const QAngle &LastEyeAngles() const { return m_qangLastAngle; }
@@ -361,9 +361,9 @@ class CMomentumPlayer : public CBasePlayer, public CGameEventListener, public CM
     // Ladder stuff
     float m_flGrabbableLadderTime;
 
-    // Last collision
-    int m_iLastCollisionTick; // Tick at which the player last collided with a non-vertical surface
-    trace_t m_trLastCollisionTrace; // (startpos and endpos raised up to player head for ceilings)
+    // List of airborne surface interations and start and end ground interactions
+    SurfInt m_surfIntList[SurfInt::TYPE_COUNT]; // Stores interactions by type
+    SurfInt::Type m_surfIntHistory[SurfInt::TYPE_COUNT]; // Keeps track of the history of interactions
 
     // Trigger stuff
     CUtlVector<CTriggerOnehop*> m_vecOnehops;

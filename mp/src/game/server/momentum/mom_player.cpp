@@ -13,7 +13,6 @@
 #include "player_command.h"
 #include "predicted_viewmodel.h"
 #include "weapon/weapon_base_gun.h"
-#include "weapon/weapon_mom_paintgun.h"
 #include "weapon/weapon_mom_stickybomblauncher.h"
 #include "mom_system_gamemode.h"
 #include "mom_system_saveloc.h"
@@ -29,6 +28,7 @@
 
 #define AVERAGE_STATS_INTERVAL 0.1
 #define SND_SPRINT "HL2Player.SprintStart"
+#define PAINT_CYCLE_TIME 0.1f
 
 static MAKE_TOGGLE_CONVAR(mom_practice_warning_enable, "1", FCVAR_ARCHIVE | FCVAR_REPLICATED,
                           "Toggles the warning for enabling practice mode during a run. 0 = OFF, 1 = ON\n");
@@ -284,6 +284,7 @@ void CMomentumPlayer::Precache()
     PrecacheScriptSound(SND_FLASHLIGHT_ON);
     PrecacheScriptSound(SND_FLASHLIGHT_OFF);
     PrecacheScriptSound(SND_SPRINT);
+    PrecacheScriptSound(SND_PAINT_SHOT);
 
     PrecacheScriptSound("Player.AirJump");
     m_hssPowerSlideSound = PrecacheScriptSound("Player.PowerSlide");
@@ -409,6 +410,9 @@ void CMomentumPlayer::FlashlightToggle(bool bOn, bool bEmitSound)
 
 void CMomentumPlayer::LoadAppearance(bool bForceUpdate)
 {
+    if (IsObserver())
+        return;
+
     AppearanceData_t newData;
     uint32 newHexColor = MomUtil::GetHexFromColor(mom_trail_color.GetString());
     newData.m_iTrailRGBAColorAsHex = newHexColor;
@@ -747,10 +751,9 @@ void CMomentumPlayer::CreateStartMark()
     {
         ClearStartMark(m_Data.m_iCurrentTrack);
 
-        m_pStartZoneMarks[m_Data.m_iCurrentTrack] = g_pMOMSavelocSystem->CreateSaveloc();
+        m_pStartZoneMarks[m_Data.m_iCurrentTrack] = g_pSavelocSystem->CreateSaveloc(SAVELOC_POS | SAVELOC_ANG);
         if (m_pStartZoneMarks[m_Data.m_iCurrentTrack])
         {
-            m_pStartZoneMarks[m_Data.m_iCurrentTrack]->vel = vec3_origin; // Rid the velocity
             DevLog("Successfully created a starting mark!\n");
         }
         else
@@ -767,16 +770,6 @@ void CMomentumPlayer::ClearStartMark(int track)
         if (m_pStartZoneMarks[track])
             delete m_pStartZoneMarks[track];
         m_pStartZoneMarks[track] = nullptr;
-    }
-}
-
-void CMomentumPlayer::DoMuzzleFlash()
-{
-    // Don't do the muzzle flash for the paint gun
-    CWeaponBase *pWeapon = dynamic_cast<CWeaponBase *>(GetActiveWeapon());
-    if (!(pWeapon && pWeapon->GetWeaponID() == WEAPON_PAINTGUN))
-    {
-        BaseClass::DoMuzzleFlash();
     }
 }
 
@@ -1164,7 +1157,7 @@ void CMomentumPlayer::OnZoneExit(CTriggerZone *pTrigger)
         }
         // g_pMomentumTimer->CalculateTickIntervalOffset(this, ZONE_TYPE_START, 1);
         g_pMomentumTimer->TryStart(this, true);
-        if (m_bShouldLimitPlayerSpeed && !m_bHasPracticeMode && !g_pMOMSavelocSystem->IsUsingSaveLocMenu())
+        if (m_bShouldLimitPlayerSpeed && !m_bHasPracticeMode && !g_pSavelocSystem->IsUsingSaveLocMenu())
         {
             const auto pStart = static_cast<CTriggerTimerStart*>(pTrigger);
 
@@ -2087,6 +2080,11 @@ void CMomentumPlayer::ApplyPushFromDamage(const CTakeDamageInfo &info, Vector &v
     Vector vecForce = -vecDir * force;
     ApplyAbsVelocityImpulse(vecForce);
 
+    if (GetFlags() & FL_ONGROUND)
+    {
+        UpdateLastAction(SurfInt::ACTION_KNOCKBACK);
+    }
+
     IGameEvent *pEvent = gameeventmanager->CreateEvent("player_explosive_hit");
     if (pEvent)
     {
@@ -2102,12 +2100,12 @@ void CMomentumPlayer::DoPaint()
     if (!CanPaint())
         return;
 
-    // Fire a paintgun bullet (doesn't actually equip/use the paintgun weapon)
+    // Fire a paint bullet
     FX_FireBullets(entindex(), EyePosition(), EyeAngles(), AMMO_TYPE_PAINT, false,
                    GetPredictionRandomSeed() & 255, 0.0f);
 
     // Delay next time we paint
-    m_flNextPaintTime = gpGlobals->curtime + CMomentumPaintGun::GetPrimaryCycleTime();
+    m_flNextPaintTime = gpGlobals->curtime + PAINT_CYCLE_TIME;
 }
 
 CON_COMMAND(toggle_duck, "Toggles duck state of the player. Only usable in the Ahop gamemode!\n")

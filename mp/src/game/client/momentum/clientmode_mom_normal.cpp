@@ -23,13 +23,8 @@
 
 #include "clienteffectprecachesystem.h"
 
-#include "loadingscreen/LoadingScreen.h"
-#include "GameUI/IGameUI.h"
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
-extern bool g_bRollingCredits;
 
 using namespace vgui;
 
@@ -56,10 +51,6 @@ extern ConVar cl_forwardspeed;
 extern ConVar cl_sidespeed;
 
 HScheme g_hVGuiCombineScheme = 0;
-
-static CDllDemandLoader g_GameUI("GameUI");
-
-CLoadingScreen *g_pLoadingScreen = nullptr;
 
 // Instance the singleton and expose the interface to it.
 IClientMode *GetClientModeNormal()
@@ -160,20 +151,7 @@ void ClientModeMOMNormal::Init()
     {
         Warning("Couldn't load combine panel scheme!\n");
     }
-
-    const auto gameUIFactory = g_GameUI.GetFactory();
-    if (gameUIFactory)
-    {
-        const auto pGameUI = static_cast<IGameUI*>(gameUIFactory(GAMEUI_INTERFACE_VERSION, nullptr));
-        if (pGameUI)
-        {
-            g_pLoadingScreen = new CLoadingScreen();
-            pGameUI->SetLoadingBackgroundDialog(g_pLoadingScreen->GetVPanel());
-        }
-    }
 }
-
-bool ClientModeMOMNormal::ShouldDrawCrosshair(void) { return (g_bRollingCredits == false); }
 
 int ClientModeMOMNormal::HudElementKeyInput(int down, ButtonCode_t keynum, const char *pszCurrentBinding)
 {
@@ -357,7 +335,7 @@ int ClientModeMOMNormal::MovementDirection(const QAngle viewangles, const Vector
             return MD_Backwards; // Backwards
         }
     }
-    return MD_NONE; // Unknown should never happend
+    return MD_NONE; // Unknown should never happen
 }
 
 bool ClientModeMOMNormal::CreateMove(float flInputSampleTime, CUserCmd *cmd)
@@ -371,14 +349,12 @@ bool ClientModeMOMNormal::CreateMove(float flInputSampleTime, CUserCmd *cmd)
     static int dominant_buttons = 0;
     static int prev_flags = 0;
 
-    int mdir;
-
     if (!local_player)
     {
         return false;
     }
 
-    mdir = MovementDirection(cmd->viewangles, local_player->GetAbsVelocity());
+    int mdir = MovementDirection(cmd->viewangles, local_player->GetAbsVelocity());
 
     if (mom_release_forward_on_jump.GetBool() && prev_flags & FL_ONGROUND && FL_ONGROUND & local_player->GetFlags() &&
         local_player->GetGroundEntity() &&
@@ -417,7 +393,7 @@ bool ClientModeMOMNormal::CreateMove(float flInputSampleTime, CUserCmd *cmd)
         }
     }
 
-    if (!mom_enable_overlapping_keys.GetBool())
+    if (mom_enable_overlapping_keys.GetBool())
     {
         cmd->buttons &= ~local_player->m_afButtonDisabled;
 

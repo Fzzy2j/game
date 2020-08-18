@@ -51,6 +51,7 @@
         "pin_to_sibling" "HudChatHistory"
 		"pin_corner_to_sibling"		"0"
 		"pin_to_sibling_corner"		"2"
+        "unicode"   "1"
     }
 
     "ChatFiltersButton"

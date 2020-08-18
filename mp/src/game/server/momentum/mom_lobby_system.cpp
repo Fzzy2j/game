@@ -67,7 +67,7 @@ static MAKE_CONVAR_C(mom_lobby_type, "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Set
 
 void CMomentumLobbySystem::HandleNewP2PRequest(P2PSessionRequest_t* info)
 {
-    if (!IsInLobby(m_sLobbyID))
+    if (!IsInLobby(info->m_steamIDRemote))
         return;
 
     if (IsUserBlocked(info->m_steamIDRemote) && !m_vecBlocked.HasElement(info->m_steamIDRemote))
@@ -449,8 +449,7 @@ bool CMomentumLobbySystem::IsInSameMapAs(const CSteamID &other)
     const char *pMapName = gpGlobals->mapname.ToCStr();
     const char *pOtherMap = SteamMatchmaking()->GetLobbyMemberData(m_sLobbyID, other, LOBBY_DATA_MAP);
 
-    return pMapName && pMapName[0] && pOtherMap && gpGlobals->eLoadType != MapLoad_Background && 
-           !FStrEq(pMapName, "credits") && FStrEq(pMapName, pOtherMap);
+    return pMapName && pMapName[0] && pOtherMap && gpGlobals->eLoadType != MapLoad_Background && FStrEq(pMapName, pOtherMap);
 }
 
 bool CMomentumLobbySystem::IsInLobby(const CSteamID &other)
@@ -527,7 +526,7 @@ void CMomentumLobbySystem::OnLobbyMemberLeave(const CSteamID &member)
     const auto lobbyMemberID = member.ConvertToUint64();
 
     // Remove them if they're a requester
-    g_pMOMSavelocSystem->RequesterLeft(lobbyMemberID);
+    g_pSavelocSystem->RequesterLeft(lobbyMemberID);
 
     const auto findIndex = m_mapLobbyGhosts.Find(lobbyMemberID);
 
@@ -800,12 +799,12 @@ void CMomentumLobbySystem::SendAndReceiveP2PPackets()
                 {
                 case SAVELOC_REQ_STAGE_COUNT_REQ:
                     {
-                        if (!g_pMOMSavelocSystem->AddSavelocRequester(fromWho.ConvertToUint64()))
+                        if (!g_pSavelocSystem->AddSavelocRequester(fromWho.ConvertToUint64()))
                             break;
 
                         SavelocReqPacket response;
                         response.stage = SAVELOC_REQ_STAGE_COUNT_ACK;
-                        response.saveloc_count = g_pMOMSavelocSystem->GetSavelocCount();
+                        response.saveloc_count = g_pSavelocSystem->GetSavelocCount();
 
                         SendPacket(&response, fromWho, k_EP2PSendReliable);
                     }
@@ -823,13 +822,13 @@ void CMomentumLobbySystem::SendAndReceiveP2PPackets()
                         SavelocReqPacket response;
                         response.stage = SAVELOC_REQ_STAGE_SAVELOC_ACK;
 
-                        if (g_pMOMSavelocSystem->WriteRequestedSavelocs(&saveloc, &response, fromWho.ConvertToUint64()))
+                        if (g_pSavelocSystem->WriteRequestedSavelocs(&saveloc, &response, fromWho.ConvertToUint64()))
                             SendPacket(&response, fromWho, k_EP2PSendReliable);
                     }
                     break;
                 case SAVELOC_REQ_STAGE_SAVELOC_ACK:
                     {
-                        if (g_pMOMSavelocSystem->ReadReceivedSavelocs(&saveloc, fromWho.ConvertToUint64()))
+                        if (g_pSavelocSystem->ReadReceivedSavelocs(&saveloc, fromWho.ConvertToUint64()))
                         {
                             SavelocReqPacket response;
                             response.stage = SAVELOC_REQ_STAGE_DONE;
@@ -844,7 +843,7 @@ void CMomentumLobbySystem::SendAndReceiveP2PPackets()
                     break;
                 case SAVELOC_REQ_STAGE_DONE:
                     {
-                        g_pMOMSavelocSystem->RequesterLeft(fromWho.ConvertToUint64());
+                        g_pSavelocSystem->RequesterLeft(fromWho.ConvertToUint64());
                     }
                     break;
                 case SAVELOC_REQ_STAGE_INVALID:

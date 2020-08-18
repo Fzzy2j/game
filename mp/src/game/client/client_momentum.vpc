@@ -29,12 +29,27 @@ $Project "Client (Momentum)"
         {
             $Folder "UI"
             {
-                $Folder "LoadingScreen"
+                $Folder "GameUI"
                 {
-                    $File "momentum\ui\loadingscreen\LoadingScreen.cpp"
-                    $File "momentum\ui\loadingscreen\LoadingScreen.h"
-                    $File "momentum\ui\loadingscreen\TipManager.h"
-                    $File "momentum\ui\loadingscreen\TipManager.cpp"
+                    $File "momentum\ui\gameui\GameUIUtil.h"
+                    $File "momentum\ui\gameui\BaseMenuPanel.h"
+                    $File "momentum\ui\gameui\BaseMenuPanel.cpp"
+
+                    $Folder "MainMenu"
+                    {
+                        $File "momentum\ui\gameui\mainmenu\MainMenu.cpp"
+                        $File "momentum\ui\gameui\mainmenu\MainMenu.h"
+                        $File "momentum\ui\gameui\mainmenu\MainMenuButton.cpp"
+                        $File "momentum\ui\gameui\mainmenu\MainMenuButton.h"
+                    }
+
+                    $Folder "LoadingScreen"
+                    {
+                        $File "momentum\ui\gameui\loadingscreen\LoadingScreen.cpp"
+                        $File "momentum\ui\gameui\loadingscreen\LoadingScreen.h"
+                        $File "momentum\ui\gameui\loadingscreen\TipManager.h"
+                        $File "momentum\ui\gameui\loadingscreen\TipManager.cpp"
+                    }
                 }
 
                 $Folder "Zone Menu"
@@ -119,7 +134,6 @@ $Project "Client (Momentum)"
                     $File "momentum\ui\HUD\hud_menu_static.cpp"
                     $File "momentum\ui\HUD\hud_fillablebar.h"
                     $File "momentum\ui\HUD\hud_measuretool.cpp"
-                    $File "hl2\hud_credits.cpp"
                     $File "hud_chat.cpp"
                     $File "hl2\hud_weaponselection.cpp"
                     $File "momentum\ui\HUD\hud_spectatorinfo.h"
@@ -187,13 +201,16 @@ $Project "Client (Momentum)"
                     $File "momentum\ui\spectate\mom_replayui.cpp"
                     $File "momentum\ui\spectate\mom_replayui.h"
                 }
-                
-                $Folder "PaintGun"
+
+                $Folder "Paint"
                 {
-                    $File "momentum\ui\PaintGunPanel.cpp"
-                    $File "momentum\ui\PaintGunPanel.h"
-                    $File "momentum\ui\PaintGunScreenPanel.h"
-                    $File "momentum\ui\PaintGunScreenPanel.cpp"
+                    $File "momentum\ui\PaintPreviewPanel.cpp"
+                    $File "momentum\ui\PaintPreviewPanel.h"
+                }
+
+                $Folder "Credits"
+                {
+                    $File "momentum\ui\CreditsDialog.cpp"
                 }
             }
 
@@ -230,8 +247,6 @@ $Project "Client (Momentum)"
                 $File "$SRCDIR\game\shared\momentum\weapon\weapon_mom_sniper.cpp"
                 $File "$SRCDIR\game\shared\momentum\weapon\weapon_mom_grenade.h"
                 $File "$SRCDIR\game\shared\momentum\weapon\weapon_mom_grenade.cpp"
-                $File "$SRCDIR\game\shared\momentum\weapon\weapon_mom_paintgun.h"
-                $File "$SRCDIR\game\shared\momentum\weapon\weapon_mom_paintgun.cpp"
                 $File "$SRCDIR\game\shared\momentum\weapon\weapon_cs_guns.cpp"
                 $File "$SRCDIR\game\shared\momentum\weapon\weapon_base.h"
                 $File "$SRCDIR\game\shared\momentum\weapon\weapon_base.cpp"
