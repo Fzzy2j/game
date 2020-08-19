@@ -43,7 +43,7 @@ qboolean	noshare;
 qboolean	nosubdiv;
 qboolean	notjunc;
 qboolean	noopt;
-qboolean	leaktest;
+qboolean	noleaktest;
 qboolean	verboseentities;
 qboolean	dumpcollide = false;
 qboolean	g_bLowPriority = false;
@@ -56,6 +56,9 @@ bool		g_NodrawTriggers = false;
 bool		g_DisableWaterLighting = false;
 bool		g_bAllowDetailCracks = false;
 bool		g_bNoVirtualMesh = false;
+bool		g_bNoDefaultCubemaps = true;
+bool		g_bSkyboxCubemaps = false;
+int			g_iDefaultCubemapSize = 32;
 
 float		g_defaultLuxelSize = DEFAULT_LUXEL_SIZE;
 float		g_luxelScale = 1.0f;
@@ -296,7 +299,7 @@ void ProcessWorldModel (void)
 			Warning( ("**** leaked ****\n") );
 			leaked = true;
 			LeakFile (tree);
-			if (leaktest)
+			if (!noleaktest)
 			{
 				Warning( ("--- MAP LEAKED ---\n") );
 				exit (0);
@@ -676,15 +679,6 @@ void SetOccluderArea( int nOccluder, int nArea, int nEntityNum )
 	{
 		g_OccluderData[nOccluder].area = nArea;
 	}
-	else if ( (nArea != 0) && (g_OccluderData[nOccluder].area != nArea) )
-	{
-		const char *pTargetName = ValueForKey( &entities[nEntityNum], "targetname" );
-		if (!pTargetName)
-		{
-			pTargetName = "<no name>";
-		}
-		Warning("Occluder \"%s\" straddles multiple areas. This is invalid!\n", pTargetName );
-	}
 }
 
 
@@ -865,7 +859,9 @@ void ProcessModels (void)
 	}
 
 	// Turn the skybox into a cubemap in case we don't build env_cubemap textures.
-	Cubemap_CreateDefaultCubemaps();
+	if (!g_bNoDefaultCubemaps)
+		Cubemap_CreateDefaultCubemaps();
+
 	EndBSPFile ();
 }
 
@@ -1006,10 +1002,10 @@ int RunVBSP( int argc, char **argv )
 			Msg ("microvolume = %f\n", microvolume);
 			i++;
 		}
-		else if (!Q_stricmp(argv[i], "-leaktest"))
+		else if (!Q_stricmp(argv[i], "-noleaktest"))
 		{
-			Msg ("leaktest = true\n");
-			leaktest = true;
+			Msg ("noleaktest = true\n");
+			noleaktest = true;
 		}
 		else if (!Q_stricmp(argv[i], "-verboseentities"))
 		{
@@ -1149,6 +1145,28 @@ int RunVBSP( int argc, char **argv )
 			V_StripTrailingSlash( g_szEmbedDir );
 			g_pFullFileSystem->AddSearchPath( g_szEmbedDir, "GAME", PATH_ADD_TO_TAIL );
 			g_pFullFileSystem->AddSearchPath( g_szEmbedDir, "MOD", PATH_ADD_TO_TAIL );
+		}
+		// Thanks to Mapbase's shader changes, default all-black cubemaps are no longer needed.
+		// The command has been switched from "-nodefaultcubemap" to "-defaultcubemap",
+		// meaning maps are compiled without them by default.
+		else if ( !Q_stricmp( argv[i], "-defaultcubemap" ) )
+		{
+			g_bNoDefaultCubemaps = false;
+		}
+		// Default cubemaps are supposed to show the sky texture, but Valve disabled this
+		// because they didn't get it working for HDR cubemaps. As a result, all default
+		// cubemaps appear as all-black textures. However, this parameter has been added to
+		// re-enable skybox cubemaps for LDR cubemaps. (HDR skybox cubemaps are not supported)
+		else if ( !Q_stricmp( argv[i], "-skyboxcubemap" ) )
+		{
+			g_bNoDefaultCubemaps = false;
+			g_bSkyboxCubemaps = true;
+		}
+		else if ( !Q_stricmp( argv[i], "-defaultcubemapres" ) )
+		{
+			g_iDefaultCubemapSize = atoi( argv[i + 1] );
+			Msg( "Default cubemap size = %i\n", g_iDefaultCubemapSize );
+			i++;
 		}
 		else if (argv[i][0] == '-')
 		{
