@@ -40,17 +40,30 @@ public:
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	virtual void OnMousePressed(MouseCode code);
 
+	Color GetButtonBgColor() override;
+
 	void OpenColumnChoiceMenu();
+
+private:
+	bool m_bBgOverridden;
 };
 
 ColumnButton::ColumnButton(vgui::Panel *parent, const char *name, const char *text) : Button(parent, name, text)
 {
+	m_bBgOverridden = false;
 	SetBlockDragChaining( true );
 }
 
 void ColumnButton::ApplySchemeSettings(IScheme *pScheme)
 {
 	Button::ApplySchemeSettings(pScheme);
+
+	const auto pHeaderBgColor = pScheme->GetResourceString("ListPanelHeader.BgColor");
+	if (pHeaderBgColor && pHeaderBgColor[0])
+	{
+		m_bBgOverridden = true;
+		SetBgColor(GetSchemeColor("ListPanelHeader.BgColor", pScheme));
+	}
 
 	SetFont(GetSchemeFont(pScheme, nullptr, "ListPanelHeader.Font", "DefaultSmall"));
     const auto pBorder = pScheme->GetBorder("ListPanelColumnButtonBorder");
@@ -84,6 +97,14 @@ void ColumnButton::OnMousePressed(MouseCode code)
 		// lock mouse input to going to this button
 		input()->SetMouseCapture(GetVPanel());
 	}
+}
+
+Color ColumnButton::GetButtonBgColor()
+{
+	if (m_bBgOverridden)
+		return GetBgColor();
+
+	return Button::GetButtonBgColor();
 }
 
 void ColumnButton::OpenColumnChoiceMenu()
@@ -414,6 +435,7 @@ DECLARE_BUILD_FACTORY( ListPanel );
 //-----------------------------------------------------------------------------
 ListPanel::ListPanel(Panel *parent, const char *panelName) : BaseClass(parent, panelName)
 {
+	m_bAlternatingColors = false;
 	m_bAutoTallHeaderToFont = false;
 	m_bIgnoreDoubleClick = false;
 	m_bMultiselectEnabled = true;
@@ -1499,6 +1521,14 @@ Panel *ListPanel::GetCellRenderer(int itemID, int col)
             bHasBg = true;
         }
 
+		if (!bHasBg && m_bAlternatingColors)
+		{
+			const auto bIsOddRow = GetItemCurrentRow(itemID) % 2 == 1;
+
+			m_pLabel->SetBgColor(bIsOddRow ? m_ListAlternationColor2 : m_ListAlternationColor1);
+
+			bHasBg = true;
+		}
     }
 
     m_pLabel->SetPaintBackgroundEnabled(bSelected || bHasBg);
@@ -2479,6 +2509,12 @@ void ListPanel::ApplySchemeSettings(IScheme *pScheme)
 	m_DisabledSelectionFgColor = GetSchemeColor("ListPanel.DisabledSelectedTextColor", m_LabelFgColor, pScheme);
     m_SelectionBgColor = GetSchemeColor("ListPanel.SelectedBgColor", pScheme);
     m_SelectionOutOfFocusBgColor = GetSchemeColor("ListPanel.SelectedOutOfFocusBgColor", pScheme);
+
+	const auto pAlternatingSetting = pScheme->GetResourceString("ListPanel.AlternatingColors");
+	m_bAlternatingColors = pAlternatingSetting[0] ? Q_atoi(pAlternatingSetting) : false;
+
+	m_ListAlternationColor1 = GetSchemeColor("ListPanel.AlternatingColor1", pScheme);
+	m_ListAlternationColor2 = GetSchemeColor("ListPanel.AlternatingColor2", Color(0, 0, 0, 255), pScheme);
 
 	m_pEmptyListText->SetFgColor(GetSchemeColor("ListPanel.EmptyListInfoTextColor", pScheme));
 

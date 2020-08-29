@@ -37,6 +37,32 @@ $Project "Client (Momentum)"
 
                     $Folder "MainMenu"
                     {
+                        $Folder "Drawer"
+                        {
+                            $File "momentum\ui\gameui\mainmenu\drawer\MenuDrawer.cpp"
+                            $File "momentum\ui\gameui\mainmenu\drawer\MenuDrawer.h"
+
+                            $Folder "Lobby"
+                            {
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\DrawerPanel_Lobby.cpp"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\DrawerPanel_Lobby.h"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\LobbyInfoPanel.h"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\LobbyInfoPanel.cpp"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\SavelocRequestFrame.h"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\SavelocRequestFrame.cpp"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\LobbyMembersPanel.h"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\LobbyMembersPanel.cpp"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\LobbySearchPanel.h"
+                                $File "momentum\ui\gameui\mainmenu\drawer\lobby\LobbySearchPanel.cpp"
+                            }
+
+                            $Folder "Profile"
+                            {
+                                $File "momentum\ui\gameui\mainmenu\drawer\profile\DrawerPanel_Profile.cpp"
+                                $File "momentum\ui\gameui\mainmenu\drawer\profile\DrawerPanel_Profile.h"
+                            }
+                        }
+
                         $File "momentum\ui\gameui\mainmenu\MainMenu.cpp"
                         $File "momentum\ui\gameui\mainmenu\MainMenu.h"
                         $File "momentum\ui\gameui\mainmenu\MainMenuButton.cpp"
@@ -50,6 +76,20 @@ $Project "Client (Momentum)"
                         $File "momentum\ui\gameui\loadingscreen\TipManager.h"
                         $File "momentum\ui\gameui\loadingscreen\TipManager.cpp"
                     }
+                }
+
+                $Folder "Chat"
+                {
+                    $File "momentum\ui\chat\ChatPanel.cpp"
+                    $File "momentum\ui\chat\ChatPanel.h"
+                    $File "momentum\ui\chat\ChatEntry.cpp"
+                    $File "momentum\ui\chat\ChatEntry.h"
+                    $File "momentum\ui\chat\ChatFilterPanel.cpp"
+                    $File "momentum\ui\chat\ChatFilterPanel.h"
+                    $File "momentum\ui\chat\ChatHistory.cpp"
+                    $File "momentum\ui\chat\ChatHistory.h"
+                    $File "momentum\ui\chat\ChatLine.cpp"
+                    $File "momentum\ui\chat\ChatLine.h"
                 }
 
                 $Folder "Zone Menu"
@@ -158,14 +198,8 @@ $Project "Client (Momentum)"
                     $File "momentum\ui\controls\ImageGallery.cpp"
                     $File "momentum\ui\controls\VControlsListPanel.h"
                     $File "momentum\ui\controls\VControlsListPanel.cpp"
-                }
-
-                $Folder "Lobby"
-                {
-                    $File "momentum\ui\lobby\SavelocRequestFrame.h"
-                    $File "momentum\ui\lobby\SavelocRequestFrame.cpp"
-                    $File "momentum\ui\lobby\LobbyMembersPanel.h"
-                    $File "momentum\ui\lobby\LobbyMembersPanel.cpp"
+                    $File "momentum\ui\controls\UserComponent.cpp"
+                    $File "momentum\ui\controls\UserComponent.h"
                 }
                 
                 $Folder "Leaderboards"
@@ -229,7 +263,8 @@ $Project "Client (Momentum)"
             $File   "momentum\client_events.h"
             $File   "momentum\client_events.cpp"
 
-
+            $File   "momentum\mom_system_user_data.h"
+            $File   "momentum\mom_system_user_data.cpp"
 
             $Folder "Weapons"
             {
@@ -261,6 +296,8 @@ $Project "Client (Momentum)"
 
             $Folder "Util"
             {
+                $File "$SRCDIR\game\shared\momentum\util\mom_system_xp.cpp"
+                $File "$SRCDIR\game\shared\momentum\util\mom_system_xp.h"
                 $File "$SRCDIR\game\shared\momentum\util\mom_util.cpp"
                 $File "$SRCDIR\game\shared\momentum\util\mom_util.h"
                 $File "$SRCDIR\game\shared\momentum\util\serialization.h"

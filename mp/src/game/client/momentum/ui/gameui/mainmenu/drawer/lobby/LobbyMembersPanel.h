@@ -1,31 +1,33 @@
 #pragma once
 
 #include "vgui_controls/EditablePanel.h"
-#include "steam/steam_api_common.h"
-#include "steam/isteammatchmaking.h"
 #include "GameEventListener.h"
 #include "game/client/iviewport.h"
 
-namespace vgui {
+struct LobbyChatUpdate_t;
+struct LobbyDataUpdate_t;
+struct LobbyEnter_t;
+
+namespace vgui
+{
     class ListPanelItem;
 }
 
 class CLeaderboardsContextMenu;
 class SavelocReqFrame;
 
-class LobbyMembersPanel : public IViewPortPanel, public vgui::EditablePanel, public CGameEventListener
+class LobbyMembersPanel : public vgui::EditablePanel
 {
 public:
     DECLARE_CLASS_SIMPLE(LobbyMembersPanel, vgui::EditablePanel);
 
-    LobbyMembersPanel(IViewPort *pParent);
+    LobbyMembersPanel(Panel *pParent);
     ~LobbyMembersPanel();
 
-    void FireGameEvent(IGameEvent* event) OVERRIDE;
-
-    STEAM_CALLBACK(LobbyMembersPanel, OnLobbyEnter, LobbyEnter_t); // When we enter a lobby
-    STEAM_CALLBACK(LobbyMembersPanel, OnLobbyDataUpdate, LobbyDataUpdate_t); // People/lobby updates status
-    STEAM_CALLBACK(LobbyMembersPanel, OnLobbyChatUpdate, LobbyChatUpdate_t); // People join/leave
+    void OnLobbyEnter(LobbyEnter_t *pData);
+    void OnLobbyLeave();
+    void OnLobbyDataUpdate(LobbyDataUpdate_t *pData);
+    void OnLobbyChatUpdate(LobbyChatUpdate_t *pData);
 
     void AddLobbyMember(const CSteamID &steamID); // Adds a lobby member to the panel
     void UpdateLobbyMemberData(const CSteamID &memberID); // Updates the lobby member's status data on the panel
@@ -34,22 +36,10 @@ public:
 
     // finds a player in the lobby data panel
     int FindItemIDForLobbyMember(uint64 steamID);
-    int FindItemIDForLobbyMember(const CSteamID &id) { return FindItemIDForLobbyMember(id.ConvertToUint64()); }
+    int FindItemIDForLobbyMember(const CSteamID& id);
 
-    bool IsVisible() OVERRIDE { return BaseClass::IsVisible(); }
-    void SetParent(vgui::VPANEL parent) OVERRIDE { return BaseClass::SetParent(parent); }
-    vgui::VPANEL GetVPanel(void) OVERRIDE { return BaseClass::GetVPanel(); }
-
-    void OnMousePressed(vgui::MouseCode code) OVERRIDE;
-
+    void SetVisible(bool state) override;
 protected:
-    const char* GetName(void) OVERRIDE;
-    void SetData(KeyValues *data) OVERRIDE {}
-    void Reset(void) OVERRIDE;
-    void Update(void) OVERRIDE {}
-    bool NeedsUpdate(void) OVERRIDE {return false;}
-    bool HasInputElements(void) OVERRIDE {return true;}
-    void ShowPanel(bool state) OVERRIDE;
 
     void OnReloadControls() override;
     void OnCommand(const char* command) OVERRIDE;
@@ -67,9 +57,6 @@ private:
     void PopulateLobbyPanel();
     void InitImageList();
     void InitLobbyPanelSections();
-    void UpdateLobbyMemberCount() const;
-    void SetLobbyTypeImage() const;
-    void SetLobbyType() const;
 
     // Attempts to add the avatar for a given steam ID to the given image list, if it doesn't exist already
     // exist in the given ID to index map.
@@ -77,15 +64,9 @@ private:
 
     CUtlMap<uint64, int> m_mapLobbyIDToImageListIndx;
 
-    vgui::Label *m_pLobbyMemberCount;
-    vgui::ImagePanel *m_pLobbyType;
-    vgui::IImage *m_pLobbyTypePublic, *m_pLobbyTypeFriends, *m_pLobbyTypePrivate;
     vgui::ListPanel *m_pMemberList;
-    vgui::Button *m_pLobbyToggle, *m_pInviteFriends;
     CLeaderboardsContextMenu *m_pContextMenu;
     SavelocReqFrame *m_pSavelocReqFrame;
 
     vgui::ImageList *m_pImageListLobby;
-
-    IViewPort *m_pViewport;
 };

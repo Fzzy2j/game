@@ -600,6 +600,16 @@
         "GameUI2_Credits" "CREDITS"
         "GameUI2_Quit" "QUIT"
 
+        "MOM_Drawer_Profile" "Profile"
+        "MOM_Drawer_Profile_Stats" "Stats"
+        "MOM_Drawer_Profile_Activity" "Activity"
+        "MOM_Drawer_Lobby" "Lobby"
+        "MOM_Drawer_Lobby_Searching" "Browsing Public Lobbies..."
+        "MOM_Drawer_Lobby_Searching_Count" "Active Lobbies: %s1"
+        "MOM_Drawer_Lobby_Searching_Public" "Public"
+        "MOM_Drawer_Lobby_Searching_Friends" "Friends"
+        "MOM_Drawer_News" "News"
+
         // Game tips
         // Specific
         "MOM_Tip_Not_Found" "No tip found! This may be an error, tell a programmer!"

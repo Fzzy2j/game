@@ -245,7 +245,6 @@ enum WallRunState
 
 #define PANEL_TIMES "times"
 #define PANEL_REPLAY "replaycontrols"
-#define PANEL_LOBBY_MEMBERS "LobbyMembers"
 
 #define MOM_COLORIZATION_CHECK_FREQUENCY 0.1f
 
@@ -332,11 +331,15 @@ enum WallRunState
 
 #define SND_PAINT_SHOT "MomPlayer.PaintShot"
 
+// Get these with GetLobbyMemberData
 #define LOBBY_DATA_MAP "map"
 #define LOBBY_DATA_APPEARANCE "appearance"
 #define LOBBY_DATA_TYPING "isTyping"
 #define LOBBY_DATA_SPEC_TARGET "specTargetID"
 #define LOBBY_DATA_IS_SPEC "isSpectating"
-#define LOBBY_DATA_TYPE "type" // Use this with GetLobbyData and NOT GetLobbyMemberData!!!
+// Use these with GetLobbyData
+#define LOBBY_DATA_OWNER "owner"
+#define LOBBY_DATA_OWNER_MAP "owner_map" // Note: this is used by public and roaming lobbies
+#define LOBBY_DATA_TYPE "type"
 
 static const unsigned long long MOM_STEAM_GROUP_ID64 = 103582791441609755;

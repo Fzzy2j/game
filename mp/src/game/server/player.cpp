@@ -3507,7 +3507,7 @@ void CBasePlayer::DumpPerfToRecipient( CBasePlayer *pRecipient, int nMaxRecords 
 
 		if ( curpos + len > 200 )
 		{
-			ClientPrint( pRecipient, HUD_PRINTCONSOLE, (char const *)buf );
+			ClientPrint( pRecipient, HUD_PRINTCONSOLE, buf );
 			buf[ 0 ] = 0;
 			curpos = 0;
 		}

@@ -5,15 +5,11 @@
 #include "leaderboards/ClientTimesDisplay.h"
 #include "leaderboards/LeaderboardsContextMenu.h"
 
-#include "vgui/ISurface.h"
-#include "vgui/IInput.h"
 #include <vgui_controls/ImageList.h>
 #include "vgui_controls/ListPanel.h"
 #include <vgui_controls/Button.h>
 #include "controls/FileImage.h"
-#include "vgui_controls/Tooltip.h"
 
-#include "MessageboxPanel.h"
 
 #include "mom_shareddefs.h"
 #include "vgui_avatarimage.h"
@@ -32,15 +28,11 @@ using namespace vgui;
 
 static CSteamID s_LobbyID = k_steamIDNil;
 
-LobbyMembersPanel::LobbyMembersPanel(IViewPort *pParent) : BaseClass(nullptr, PANEL_LOBBY_MEMBERS)
+LobbyMembersPanel::LobbyMembersPanel(Panel *pParent) : BaseClass(pParent, "LobbyMembers")
 {
-    m_pViewport = pParent;
-    // initialize dialog
     SetProportional(true);
-    SetKeyBoardInputEnabled(false);
-    SetMouseInputEnabled(false);
-    // Create a "popup" so we can get the mouse to detach
-    surface()->CreatePopup(GetVPanel(), false, false, false, false, false);
+    SetKeyBoardInputEnabled(true);
+    SetMouseInputEnabled(true);
 
     // set the scheme before any child control is created
     SetScheme("ClientScheme");
@@ -50,23 +42,15 @@ LobbyMembersPanel::LobbyMembersPanel(IViewPort *pParent) : BaseClass(nullptr, PA
     m_pImageListLobby = new ImageList(true);
     SetDefLessFunc(m_mapLobbyIDToImageListIndx);
 
-    m_pSavelocReqFrame = new SavelocReqFrame();
-
-    m_pLobbyMemberCount = new Label(this, "LobbyMemberCount", "");
-    m_pLobbyType = new ImagePanel(this, "LobbyType");
-    m_pLobbyType->InstallMouseHandler(this);
-    m_pLobbyType->SetVisible(false);
-    m_pLobbyType->SetShouldScaleImage(true);
+    m_pSavelocReqFrame = new SavelocReqFrame;
     
     m_pMemberList = new ListPanel(this, "MemberList");
     m_pMemberList->SetRowHeightOnFontChange(false);
     m_pMemberList->SetRowHeight(GetScaledVal(20));
     m_pMemberList->SetMultiselectEnabled(false);
     m_pMemberList->SetAutoTallHeaderToFont(true);
-    m_pLobbyToggle = new Button(this, "LobbyToggle", "#GameUI2_HostLobby", this, "HostLobby");
-    m_pInviteFriends = new Button(this, "InviteFriends", "#GameUI2_InviteLobby", this, "InviteFriends");
 
-    LoadControlSettings("resource/ui/LobbyMembersPanel.res");
+    LoadControlSettings("resource/ui/mainmenu/LobbyMembersPanel.res");
 
     m_pMemberList->SetKeyBoardInputEnabled(true);
     m_pContextMenu = new CLeaderboardsContextMenu(m_pMemberList);
@@ -76,12 +60,6 @@ LobbyMembersPanel::LobbyMembersPanel(IViewPort *pParent) : BaseClass(nullptr, PA
 
     InitLobbyPanelSections();
     m_pMemberList->ResetScrollBar();
-
-    m_pLobbyTypePublic = new FileImage("materials/vgui/icon/lobby_panel/lobby_public.png");
-    m_pLobbyTypeFriends = new FileImage("materials/vgui/icon/lobby_panel/lobby_friends.png");
-    m_pLobbyTypePrivate = new FileImage("materials/vgui/icon/lobby_panel/lobby_private.png");
-
-    ListenForGameEvent("lobby_leave");
 }
 
 // NOTE: This gets called when the user changes resolution!
@@ -92,28 +70,6 @@ LobbyMembersPanel::~LobbyMembersPanel()
 
     if (m_pSavelocReqFrame)
         m_pSavelocReqFrame->DeletePanel();
-
-    delete m_pLobbyTypePublic;
-    delete m_pLobbyTypeFriends;
-    delete m_pLobbyTypePrivate;
-}
-
-void LobbyMembersPanel::FireGameEvent(IGameEvent* event)
-{
-    // Clear out the index map and the image list when you leave the lobby
-    m_pMemberList->RemoveAll();
-
-    // And like a phoenix, rise from the ashes
-    InitImageList();
-    m_pMemberList->SetImageList(m_pImageListLobby, false);
-
-    m_pLobbyToggle->SetText("#GameUI2_HostLobby");
-    m_pLobbyToggle->SetCommand("HostLobby");
-    m_pInviteFriends->SetVisible(false);
-    m_pLobbyMemberCount->SetVisible(false);
-    m_pLobbyType->SetVisible(false);
-
-    s_LobbyID.Clear();
 }
 
 void LobbyMembersPanel::OnLobbyChatUpdate(LobbyChatUpdate_t* pParam)
@@ -122,7 +78,6 @@ void LobbyMembersPanel::OnLobbyChatUpdate(LobbyChatUpdate_t* pParam)
     {
         // Add this user to the panel
         AddLobbyMember(CSteamID(pParam->m_ulSteamIDUserChanged));
-        UpdateLobbyMemberCount();
         m_pMemberList->InvalidateLayout(true);
     }
     else if (pParam->m_rgfChatMemberStateChange & (k_EChatMemberStateChangeLeft | k_EChatMemberStateChangeDisconnected))
@@ -132,7 +87,6 @@ void LobbyMembersPanel::OnLobbyChatUpdate(LobbyChatUpdate_t* pParam)
         if (itemID > -1)
         {
             m_pMemberList->RemoveItem(itemID);
-            UpdateLobbyMemberCount();
             m_pMemberList->SortList();
         }
     }
@@ -198,7 +152,7 @@ int LobbyMembersPanel::StaticLobbyMemberSortFunc(ListPanel* list, const ListPane
     const char *pMapName = g_pGameRules->MapName();
 
     if (!pMapName)
-        return 0;
+        pMapName = "";
 
     Assert(it1 && it2);
 
@@ -230,7 +184,7 @@ int LobbyMembersPanel::StaticLobbyMemberSortFunc(ListPanel* list, const ListPane
     if (is2OnMap)
         return 1; // it2 goes first, since they're on our map
 
-    // If they're both not on the our map, check some more things...
+    // If they're both not on our map, check some more things...
     // If they're on the same map, go by name
     if (FStrEq(map1, map2))
         return Q_strcmp(name1, name2);
@@ -256,26 +210,15 @@ int LobbyMembersPanel::FindItemIDForLobbyMember(const uint64 steamID)
     return -1;
 }
 
-void LobbyMembersPanel::OnMousePressed(MouseCode code)
+int LobbyMembersPanel::FindItemIDForLobbyMember(const CSteamID& id)
 {
-    if (code == MOUSE_LEFT && input()->GetMouseOver() == m_pLobbyType->GetVPanel())
-    {
-        SetLobbyType(); // Cycle and update the lobby type
-    }
+    return FindItemIDForLobbyMember(id.ConvertToUint64());
 }
 
-const char* LobbyMembersPanel::GetName()
+void LobbyMembersPanel::SetVisible(bool bShow)
 {
-    return PANEL_LOBBY_MEMBERS;
-}
+    return BaseClass::SetVisible(bShow);
 
-void LobbyMembersPanel::Reset()
-{
-    m_pMemberList->ClearSelectedItems();
-}
-
-void LobbyMembersPanel::ShowPanel(bool bShow)
-{
     // Catch the case where we call ShowPanel before ApplySchemeSettings, eg when
     // going from windowed <-> fullscreen
     if (!m_pImageListLobby && bShow)
@@ -294,14 +237,9 @@ void LobbyMembersPanel::ShowPanel(bool bShow)
 
     if (bShow)
     {
-        Reset();
         SetVisible(true);
         // SetEnabled(true);
         MoveToFront();
-
-        const auto pSpecUI = m_pViewport->FindPanelByName(PANEL_SPECGUI);
-        if (pSpecUI && pSpecUI->IsVisible() && ipanel()->IsMouseInputEnabled(pSpecUI->GetVPanel()))
-            SetMouseInputEnabled(true);
     }
     else
     {
@@ -340,13 +278,11 @@ void LobbyMembersPanel::OnCommand(const char* command)
 void LobbyMembersPanel::OnContextGoToMap(const char* map)
 {
     // MOM_TODO: We're going to need to feed this into a map downloader first, if they don't have the map!
-    ShowPanel(false);
     engine->ClientCmd_Unrestricted(CFmtStr("gameui_activate;map %s", map));
 }
 
 void LobbyMembersPanel::OnContextReqSavelocs(uint64 target)
 {
-    ShowPanel(false);
     KeyValues *pReq = new KeyValues("req_savelocs");
     // Stage 1 is request the count, make the other player make a copy of their savelocs for us
     pReq->SetInt("stage", SAVELOC_REQ_STAGE_COUNT_REQ);
@@ -381,16 +317,9 @@ void LobbyMembersPanel::OnContextTeleport(uint64 target)
 
 void LobbyMembersPanel::LobbyEnterSuccess()
 {
-    m_pLobbyToggle->SetText("#GameUI2_LeaveLobby");
-    m_pLobbyToggle->SetCommand("LeaveLobby");
-    m_pInviteFriends->SetVisible(true);
-    m_pLobbyMemberCount->SetVisible(true);
-
     // Add everyone now
     PopulateLobbyPanel();
-    UpdateLobbyMemberCount();
     m_pMemberList->SortList();
-    SetLobbyTypeImage();
 
     InvalidateLayout(true);
 }
@@ -400,26 +329,23 @@ void LobbyMembersPanel::OnContextVisitProfile(uint64 profile)
     if (profile != 0 && SteamFriends())
     {
         SteamFriends()->ActivateGameOverlayToUser("steamid", CSteamID(profile));
-        ShowPanel(false);
     }
 }
 
 void LobbyMembersPanel::OnSpectateLobbyMember(uint64 target)
 {
-    ShowPanel(false);
     engine->ClientCmd_Unrestricted(CFmtStr("mom_spectate %llu\n", target));
 }
 
 void LobbyMembersPanel::OnLobbyDataUpdate(LobbyDataUpdate_t* pParam)
 {
+    if (pParam->m_ulSteamIDLobby != s_LobbyID.ConvertToUint64())
+        return;
+
     if (pParam->m_ulSteamIDMember == pParam->m_ulSteamIDLobby)
     {
-        // The lobby itself changed
-        UpdateLobbyMemberCount();
         // Update owner(s) if they changed
         PopulateLobbyPanel();
-        // Check if the type changed
-        SetLobbyTypeImage();
     }
     else
     {
@@ -432,34 +358,20 @@ void LobbyMembersPanel::OnLobbyDataUpdate(LobbyDataUpdate_t* pParam)
 
 void LobbyMembersPanel::OnLobbyEnter(LobbyEnter_t* pParam)
 {
-    if (pParam->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess)
-    {
-        s_LobbyID = CSteamID(pParam->m_ulSteamIDLobby);
+    s_LobbyID = CSteamID(pParam->m_ulSteamIDLobby);
 
-        LobbyEnterSuccess();
-    }
-    else
-    {
-         // NOTE: The unlocalized ones are ones we aren't sure if they're ever used
-        static const char * const szJoinFails[] = {
-            "#MOM_Lobby_JoinFail_DoesntExist", // k_EChatRoomEnterResponseDoesntExist ( = 2 )
-            "#MOM_Lobby_JoinFail_NotAllowed", // k_EChatRoomEnterResponseNotAllowed
-            "#MOM_Lobby_JoinFail_Full", // k_EChatRoomEnterResponseFull
-            "#MOM_Lobby_JoinFail_Error", // k_EChatRoomEnterResponseError
-            "You are banned from this chat room.", // k_EChatRoomEnterResponseBanned
-            "#MOM_Lobby_JoinFail_Limited", // k_EChatRoomEnterResponseLimited
-            "The clan is locked or disabled!", // k_EChatRoomEnterResponseClanDisabled
-            "Your account has a community ban!", // k_EChatRoomEnterResponseCommunityBan
-            "Some member of the chat has blocked you from joining.", // k_EChatRoomEnterResponseMemberBlockedYou
-            "You have blocked some member already in the chat.", // k_EChatRoomEnterResponseYouBlockedMember
-            "Unused1",
-            "Unused2",
-            "Unused3",
-            "Too many join attempts in a very short period of time. Try waiting a bit before trying again." // k_EChatRoomEnterResponseRatelimitExceeded
-        };
+    LobbyEnterSuccess();
+}
 
-        g_pMessageBox->CreateMessagebox("#MOM_Lobby_JoinFail", szJoinFails[pParam->m_EChatRoomEnterResponse - 2]);
-    }
+void LobbyMembersPanel::OnLobbyLeave()
+{
+    // Clear out the index map and the image list when you leave the lobby
+    m_pMemberList->RemoveAll();
+
+    // And like a phoenix, rise from the ashes
+    InitImageList();
+
+    s_LobbyID.Clear();
 }
 
 void LobbyMembersPanel::PopulateLobbyPanel()
@@ -493,13 +405,14 @@ void LobbyMembersPanel::InitImageList()
 
     // Add the default crown image to index 1
     m_pImageListLobby->AddImage(new FileImage("materials/vgui/icon/lobby_panel/lobby_owner.png"));
+
+    m_pMemberList->SetImageList(m_pImageListLobby, false);
 }
 
 void LobbyMembersPanel::InitLobbyPanelSections()
 {
     InitImageList();
 
-    m_pMemberList->SetImageList(m_pImageListLobby, false);
     m_pMemberList->AddColumnHeader(0, "isOwner", "", GetScaledVal(30), 
                                    ListPanel::COLUMN_IMAGE | ListPanel::COLUMN_FIXEDSIZE | ListPanel::COLUMN_DISABLED);
     m_pMemberList->AddColumnHeader(1, "avatar", "", GetScaledVal(30), 
@@ -513,60 +426,6 @@ void LobbyMembersPanel::InitLobbyPanelSections()
 
     m_pMemberList->SetColumnTextAlignment(0, Label::a_center);
     m_pMemberList->SetColumnTextAlignment(1, Label::a_center);
-}
-
-void LobbyMembersPanel::UpdateLobbyMemberCount() const
-{
-    if (s_LobbyID.IsValid())
-    {
-        const auto current = SteamMatchmaking()->GetNumLobbyMembers(s_LobbyID);
-        const auto max = SteamMatchmaking()->GetLobbyMemberLimit(s_LobbyID);
-        m_pLobbyMemberCount->SetText(CConstructLocalizedString(L" (%s1/%s2)", current, max));
-    }
-}
-
-void LobbyMembersPanel::SetLobbyTypeImage() const
-{
-    const auto pTypeStr = SteamMatchmaking()->GetLobbyData(s_LobbyID, LOBBY_DATA_TYPE);
-    if (pTypeStr && Q_strlen(pTypeStr) == 1)
-    {
-        const auto nType = clamp<int>(Q_atoi(pTypeStr), k_ELobbyTypePrivate, k_ELobbyTypePublic);
-
-        IImage *pImages[3] = 
-        {
-            m_pLobbyTypePrivate,
-            m_pLobbyTypeFriends,
-            m_pLobbyTypePublic
-        };
-        const char *pTTs[3] = {
-            "#MOM_Lobby_Type_Private",
-            "#MOM_Lobby_Type_FriendsOnly",
-            "#MOM_Lobby_Type_Public"
-        };
-
-        m_pLobbyType->SetVisible(true);
-        m_pLobbyType->SetImage(pImages[nType]);
-        m_pLobbyType->GetTooltip()->SetEnabled(true);
-        m_pLobbyType->GetTooltip()->SetText(pTTs[nType]);
-    }
-}
-
-void LobbyMembersPanel::SetLobbyType() const
-{
-    CHECK_STEAM_API(SteamUser());
-    CHECK_STEAM_API(SteamMatchmaking());
-    // But only if they're the lobby owner
-    const auto locID = SteamUser()->GetSteamID();
-    if (s_LobbyID.IsValid() && locID == SteamMatchmaking()->GetLobbyOwner(s_LobbyID))
-    {
-        const auto pTypeStr = SteamMatchmaking()->GetLobbyData(s_LobbyID, LOBBY_DATA_TYPE);
-        if (pTypeStr && Q_strlen(pTypeStr) == 1)
-        {
-            const auto nType = clamp<int>(Q_atoi(pTypeStr), k_ELobbyTypePrivate, k_ELobbyTypePublic);
-            const auto newType = (nType + 1) % (k_ELobbyTypePublic + 1);
-            engine->ClientCmd_Unrestricted(CFmtStr("mom_lobby_type %i", newType));
-        }
-    }
 }
 
 int LobbyMembersPanel::TryAddAvatar(const uint64& steamID)
