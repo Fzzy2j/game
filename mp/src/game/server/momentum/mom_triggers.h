@@ -61,6 +61,9 @@ public:
     // By default we want to filter out momentum entities that do not pass an inherit track number check.
     virtual bool PassesTriggerFilters(CBaseEntity* pOther) OVERRIDE;
 
+    // Draws relevant information when ent_text is used
+    virtual int DrawDebugTextOverlays() OVERRIDE;
+
     // Returns this trigger's track number.
     int GetTrackNumber() const { return m_iTrackNumber; }
     void SetTrackNumber(int track) { m_iTrackNumber = track; }
@@ -135,6 +138,8 @@ public:
 
     const Vector& GetRestartPosition();
 
+    virtual int DrawDebugTextOverlays() OVERRIDE;
+
     IMPLEMENT_NETWORK_VAR_FOR_DERIVED(m_iTrackNumber);
 
     CNetworkVar(float, m_flZoneHeight);
@@ -170,6 +175,8 @@ public:
 
     virtual bool ToKeyValues(KeyValues* pKvInto) OVERRIDE;
     virtual bool LoadFromKeyValues(KeyValues* kv) OVERRIDE;
+
+    virtual int DrawDebugTextOverlays() OVERRIDE;
 
 protected:
     // The zone number of this zone. Keep in mind start timer triggers are always zone number 1,
@@ -307,6 +314,8 @@ public:
 
     // Default teleport method, uses the set destination target, if there is one.
     void HandleTeleport(CBaseEntity *pOther);
+
+    virtual int DrawDebugTextOverlays() OVERRIDE;
 
 protected:
     int m_iMode;
@@ -494,7 +503,9 @@ enum
     BOOST_ADD,
     BOOST_SET_IF_LOWER,
     BOOST_ADD_IF_LOWER,
-    BOOST_BASEVELOCITY
+    BOOST_BASEVELOCITY,
+
+    BOOST_COUNT
 };
 
 // CFuncShootBoost
@@ -508,6 +519,7 @@ class CFuncShootBoost : public CBreakable
 
     void Spawn() OVERRIDE;
     int OnTakeDamage(const CTakeDamageInfo &info) OVERRIDE;
+    virtual int DrawDebugTextOverlays() OVERRIDE;
     // Force in units per seconds applied to the player
     float m_fPushForce;
     // 0: No
@@ -538,6 +550,8 @@ class CTriggerMomentumPush : public CBaseMomentumTrigger
     void OnEndTouch(CBaseEntity *) OVERRIDE;
     // Called when (and by) either a OnStartTouch() or OnEndTouch() event happens and their requisites are met
     void OnSuccessfulTouch(CBaseEntity *);
+
+    virtual int DrawDebugTextOverlays() OVERRIDE;
 
   private:
     // Force in units per seconds applied to the player
