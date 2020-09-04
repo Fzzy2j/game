@@ -27,6 +27,8 @@
         "MOM_Controls_Drop" "Drop current weapon"
         "MOM_Controls_ToggleLobbyMembers" "Show lobby members"
         "MOM_Controls_Paint" "Apply paint decal"
+        "MOM_Controls_CreateStartMark" "Create start mark"
+        "MOM_Controls_ClearStartMark" "Clear start mark"
 
     //Saveloc Menu
         "MOM_Menu_SaveCurLoc" "Save Current Location"
@@ -132,6 +134,9 @@
 
     //Guns
         "MOM_Gun" "Momentum Gun"
+
+    //Hud hints
+        "MOM_Hint_CreateStartMark" "%mom_start_mark_create%Create start mark"
 
     //Map Selection
         "MOM_MapSelector_BrowseMaps" "Browse"
@@ -329,6 +334,7 @@
         "MOM_Settings_Overlapping_Keys_TT" "When checked, key presses will overlap and null each other out, much like null binds."
         "MOM_Settings_Release_Forward_On_Jump" "Release forward key on jump"
         "MOM_Settings_Release_Forward_On_Jump_TT" "When checked the game will determine the forward key based on movement while on ground and release the determined key when you jump."
+        "MOM_Settings_Draw_Viewmodel" "Show weapon viewmodels"
 
         // Gameplay - paint
         "MOM_Settings_Title_Gameplay_Paint" "Paint Settings"

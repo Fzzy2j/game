@@ -1092,9 +1092,18 @@ PostProcessParameters_t s_LocalPostProcessParameters;
 static Vector4D s_viewFadeColor;
 static bool  s_bViewFadeModulate;
 
+static bool s_bOverridePostProcessParams = false;
+
 void SetPostProcessParams( const PostProcessParameters_t* pPostProcessParameters )
 {
-	s_LocalPostProcessParameters = *pPostProcessParameters;
+    if (!s_bOverridePostProcessParams)
+	    s_LocalPostProcessParameters = *pPostProcessParameters;
+}
+
+void SetPostProcessParams( const PostProcessParameters_t* pPostProcessParameters, bool bOverride )
+{
+    s_bOverridePostProcessParams = bOverride;
+    s_LocalPostProcessParameters = *pPostProcessParameters;
 }
 
 void SetViewFadeParams( byte r, byte g, byte b, byte a, bool bModulate )
@@ -2341,7 +2350,7 @@ void DoEnginePostProcessing( int x, int y, int w, int h, bool bFlashlightIsOn, b
 
 			// bloom, software-AA and colour-correction (applied in 1 pass, after generation of the bloom texture)
 			bool  bPerformSoftwareAA	= false; // this was: IsX360() && ( engine->GetDXSupportLevel() >= 90 ) && ( flAAStrength != 0.0f );
-			bool  bPerformBloom			= !bPostVGui && ( flBloomScale > 0.0f ) && ( engine->GetDXSupportLevel() >= 90 );
+			bool  bPerformBloom			= true; // !bPostVGui && ( flBloomScale > 0.0f ) && ( engine->GetDXSupportLevel() >= 90 );
 			bool  bPerformColCorrect	= !bPostVGui && 
 										  ( g_pMaterialSystemHardwareConfig->GetDXSupportLevel() >= 90) &&
 										  ( g_pMaterialSystemHardwareConfig->GetHDRType() != HDR_TYPE_FLOAT ) &&

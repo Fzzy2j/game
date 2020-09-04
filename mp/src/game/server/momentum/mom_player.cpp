@@ -467,7 +467,7 @@ void CMomentumPlayer::Spawn()
 
         for (int i = 0; i < MAX_TRACKS; i++)
         {
-            ClearStartMark(i);
+            ClearStartMark(i, false);
         }
 
         g_MapZoneSystem.DispatchMapInfo(this);
@@ -743,34 +743,43 @@ CBaseMomentumTrigger* CMomentumPlayer::GetCurrentProgressTrigger() const
     return m_CurrentProgress.Get();
 }
 
-void CMomentumPlayer::CreateStartMark()
+bool CMomentumPlayer::CreateStartMark()
 {
     const auto pCurrentZoneTrigger = GetCurrentZoneTrigger();
 
     if (pCurrentZoneTrigger && pCurrentZoneTrigger->IsTouching(this) && pCurrentZoneTrigger->GetZoneType() == ZONE_TYPE_START)
     {
-        ClearStartMark(m_Data.m_iCurrentTrack);
+        ClearStartMark(m_Data.m_iCurrentTrack, false);
 
         m_pStartZoneMarks[m_Data.m_iCurrentTrack] = g_pSavelocSystem->CreateSaveloc(SAVELOC_POS | SAVELOC_ANG);
         if (m_pStartZoneMarks[m_Data.m_iCurrentTrack])
         {
             DevLog("Successfully created a starting mark!\n");
+            ClientPrint(this, HUD_PRINTTALK, "Start Mark Created!");
+            return true;
         }
         else
         {
             Warning("Could not create the start mark for some reason!\n");
         }
     }
+    return false;
 }
 
-void CMomentumPlayer::ClearStartMark(int track)
+bool CMomentumPlayer::ClearStartMark(int track, bool bPrintMsg)
 {
     if (track >= 0 && track < MAX_TRACKS)
     {
         if (m_pStartZoneMarks[track])
             delete m_pStartZoneMarks[track];
         m_pStartZoneMarks[track] = nullptr;
+
+        if (bPrintMsg)
+            ClientPrint(this, HUD_PRINTTALK, "Start Mark Cleared!");
+
+        return true;
     }
+    return false;
 }
 
 bool CMomentumPlayer::CanSprint() const
@@ -1772,7 +1781,7 @@ void CMomentumPlayer::TimerCommand_Restart(int track)
         {
             // Don't set angles if still in start zone.
             QAngle ang = pStart->GetLookAngles();
-            Teleport(&pStart->WorldSpaceCenter(), (pStart->HasLookAngles() ? &ang : nullptr), &vec3_origin);
+            Teleport(&pStart->GetRestartPosition(), (pStart->HasLookAngles() ? &ang : nullptr), &vec3_origin);
         }
 
         m_Data.m_iCurrentTrack = track;
@@ -1807,8 +1816,7 @@ void CMomentumPlayer::TimerCommand_RestartStage(int stage, int track)
         {
             DestroyExplosives();
 
-            // MOM_TODO do a trace downwards from the top of the trigger's center to touchable land, teleport the player there
-            Teleport(&pCurrentZone->WorldSpaceCenter(), nullptr, &vec3_origin);
+            Teleport(&pCurrentZone->GetRestartPosition(), nullptr, &vec3_origin);
         }
         return;
     }
@@ -1821,7 +1829,7 @@ void CMomentumPlayer::TimerCommand_RestartStage(int stage, int track)
     {
         if (pStage->GetZoneNumber() == stage && pStage->GetTrackNumber() == track)
         {
-            Teleport(&pStage->GetAbsOrigin(), &pStage->GetAbsAngles(), &vec3_origin);
+            Teleport(&pStage->GetRestartPosition(), &pStage->GetAbsAngles(), &vec3_origin);
             // Stop *after* the teleport
             g_pMomentumTimer->Stop(this);
             return;
@@ -2122,3 +2130,4 @@ CON_COMMAND(toggle_duck, "Toggles duck state of the player. Only usable in the A
 
     pPlayer->ToggleDuck();
 }
+

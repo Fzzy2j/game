@@ -176,7 +176,7 @@ typedef struct
 	char	*filename;
 } texlight_t;
 
-#define	MAX_TEXLIGHTS	128
+#define	MAX_TEXLIGHTS	512
 
 texlight_t	texlights[MAX_TEXLIGHTS];
 int			num_texlights;
@@ -897,7 +897,8 @@ void SubdividePatch( int ndxPatch )
 
 	if( area1 == 0 || area2 == 0 )
 	{
-		Msg( "zero area child patch\n" );
+        Vector v0 = patch->origin;
+		Msg( "zero area child patch near %.2f %.2f %.2f\n", v0.x, v0.y, v0.z );
 		return;
 	}
 
@@ -2908,6 +2909,11 @@ int RunVRAD( int argc, char **argv )
 	CmdLib_InitFileSystem( argv[ i ] );
 	Q_FileBase( source, source, sizeof( source ) );
 
+	if ( !g_bUseMPI )
+	{
+		LoadCmdLineFromFile( argc, argv, source, "vrad" ); // Don't do this if we're a VMPI worker..
+	}
+
 	VRAD_LoadBSP( argv[i] );
 
 	if ( (! onlydetail) && (! g_bOnlyStaticProps ) )
@@ -2944,14 +2950,8 @@ int VRAD_Main(int argc, char **argv)
 	else
 #endif
 	{
-		LoadCmdLineFromFile( argc, argv, source, "vrad" ); // Don't do this if we're a VMPI worker..
 		SetupDefaultToolsMinidumpHandler();
 	}
 	
 	return RunVRAD( argc, argv );
 }
-
-
-
-
-

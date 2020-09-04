@@ -10,6 +10,7 @@
 #include "fmtstr.h"
 #include "mom_timer.h"
 #include "mom_modulecomms.h"
+#include "trigger_trace_enums.h"
 
 #include "dt_utlvector_send.h"
 
@@ -92,6 +93,7 @@ END_SEND_TABLE();
 CBaseMomZoneTrigger::CBaseMomZoneTrigger()
 {
     m_iTrackNumber = TRACK_MAIN; // Default zones to the main map.
+    m_vecRestartPos = vec3_invalid;
 }
 
 void CBaseMomZoneTrigger::InitCustomCollision(CPhysCollide* pPhysCollide, const Vector& vecMins, const Vector& vecMaxs)
@@ -162,6 +164,59 @@ bool CBaseMomZoneTrigger::LoadFromKeyValues(KeyValues *pKvFrom)
 int CBaseMomZoneTrigger::GetZoneType()
 {
     return ZONE_TYPE_INVALID;
+}
+
+bool CBaseMomZoneTrigger::FindStandableGroundBelow(const Vector& traceStartPos, Vector& dropPos)
+{
+    // Trace for a suitable landing position
+    Vector collisionEnd(traceStartPos + Vector(0, 0, -MAX_TRACE_LENGTH));
+    int mask = MASK_PLAYERSOLID_BRUSHONLY;
+    int group = COLLISION_GROUP_NONE;
+    trace_t solidTr;
+    UTIL_TraceHull(traceStartPos, collisionEnd, VEC_HULL_MIN, VEC_HULL_MAX, mask, nullptr, group, &solidTr);
+
+    // Check if we would land in a teleport trigger
+    Ray_t tpRay;
+    tpRay.Init(traceStartPos, solidTr.endpos);
+    CTeleportTriggerTraceEnum traceEnum(&tpRay);
+    enginetrace->EnumerateEntities(tpRay, true, &traceEnum);
+
+    // Check if one of the following happened:
+    // We would land on a trigger_teleport
+    // We didn't actually find any ground to stand on
+    // We would land on a ramp you cannot stand on
+    bool dropOnGround =
+        traceEnum.GetTeleportEntity() == nullptr
+        && solidTr.DidHit()
+        && (!solidTr.allsolid && solidTr.plane.normal.z >= 0.7);
+    dropPos = dropOnGround ? solidTr.endpos : traceStartPos;
+
+    return dropOnGround;
+}
+
+const Vector& CBaseMomZoneTrigger::GetRestartPosition()
+{
+    if(m_vecRestartPos == vec3_invalid)
+    {
+        Vector zoneMaxsRel = CollisionProp()->OBBMaxs();
+        Vector zoneMaxs;
+        VectorTransform(zoneMaxsRel, CollisionProp()->CollisionToWorldTransform(), zoneMaxs);
+        Vector zoneMinsRel = CollisionProp()->OBBMins();
+        Vector zoneMins;
+        VectorTransform(zoneMinsRel, CollisionProp()->CollisionToWorldTransform(), zoneMins);
+
+        // Fallback restart position in the middle
+        Vector zoneCenter(0.5f * (zoneMaxs + zoneMins));
+        // Where we actually trace from to find the landing position
+        Vector zoneCeilCenter = Vector(zoneCenter.x, zoneCenter.y, zoneMaxs.z);
+
+        Vector dropPos;
+        bool foundGround = FindStandableGroundBelow(zoneCeilCenter, dropPos);
+
+        bool groundIsHighEnough = (dropPos.z >= zoneMins.z - 0.9f * (VEC_DUCK_HULL_MAX.z - VEC_DUCK_HULL_MIN.z));
+        m_vecRestartPos = (foundGround && groundIsHighEnough) ? dropPos : zoneCenter;
+    }
+    return m_vecRestartPos;
 }
 
 // --------- CTriggerZone ----------------------------------------------
